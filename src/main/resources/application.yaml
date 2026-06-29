@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    default: local
   application:
     name: 2026-spring-team1
   datasource:
