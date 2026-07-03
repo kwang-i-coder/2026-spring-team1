@@ -47,7 +47,7 @@ public class MeetingFile extends BaseTimeEntity {
     private MeetingFileStatus status;
 
     @Lob
-    @Column(name = "transcript", columnDefinition = "LONGTEXT")
+    @Column(name = "transcript")
     private String transcript;
 
     @Column(name = "error_message", columnDefinition = "TEXT")

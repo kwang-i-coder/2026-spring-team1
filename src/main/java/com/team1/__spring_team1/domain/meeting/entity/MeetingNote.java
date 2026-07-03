@@ -31,7 +31,7 @@ public class MeetingNote extends BaseTimeEntity {
     private String title;
 
     @Lob
-    @Column(name = "content", nullable = false, columnDefinition = "LONGTEXT")
+    @Column(name = "content", nullable = false)
     private String content;
 
     @Column(name = "created_by", nullable = false)
