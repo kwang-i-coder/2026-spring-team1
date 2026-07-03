@@ -8,6 +8,12 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import com.team1.__spring_team1.global.entity.BaseTimeEntity;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 @Getter
 @Entity
 @Table(name = "meeting_notes")
@@ -18,9 +24,8 @@ public class MeetingNote extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", nullable = false)
-    private Project project;
+    @Column(name = "project_id", nullable = false)
+    private Long projectId;
 
     @Column(name = "title", nullable = false, length = 255)
     private String title;
@@ -29,12 +34,11 @@ public class MeetingNote extends BaseTimeEntity {
     @Column(name = "content", nullable = false, columnDefinition = "LONGTEXT")
     private String content;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by", nullable = false)
-    private User createdBy;
+    @Column(name = "created_by", nullable = false)
+    private Long createdBy;
 
-    public MeetingNote(Project project, String title, String content, User createdBy) {
-        this.project = project;
+    public MeetingNote(Long projectId, String title, String content, Long createdBy) {
+        this.projectId = projectId;
         this.title = title;
         this.content = content;
         this.createdBy = createdBy;

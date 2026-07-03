@@ -8,6 +8,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+
 @Getter
 @Entity
 @Table(name = "meeting_files")
@@ -18,9 +19,8 @@ public class MeetingFile extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", nullable = false)
-    private Project project;
+    @Column(name = "project_id", nullable = false)
+    private Long projectId;
 
     @Column(name = "title", nullable = false, length = 255)
     private String title;
@@ -53,14 +53,13 @@ public class MeetingFile extends BaseTimeEntity {
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "uploaded_by", nullable = false)
-    private User uploadedBy;
+    @Column(name = "uploaded_by", nullable = false)
+    private Long uploadedBy;
 
-    public MeetingFile(Project project, String title, String originalFileName,
+    public MeetingFile(Long projectId, String title, String originalFileName,
                        String storedFileUrl, String storedFilePath,
-                       String contentType, Long fileSize, User uploadedBy) {
-        this.project = project;
+                       String contentType, Long fileSize, Long uploadedBy) {
+        this.projectId = projectId;
         this.title = title;
         this.originalFileName = originalFileName;
         this.storedFileUrl = storedFileUrl;
@@ -68,11 +67,7 @@ public class MeetingFile extends BaseTimeEntity {
         this.contentType = contentType;
         this.fileSize = fileSize;
         this.uploadedBy = uploadedBy;
-        this.status = MeetingFileStatus.PENDING;
-    }
-
-    public void updateStatus(MeetingFileStatus status) {
-        this.status = status;
+        this.status = MeetingFileStatus.TRANSCRIBING;
     }
 
     public void completeTranscription(String transcript) {

@@ -6,8 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 public enum MeetingFileStatus {
-    PENDING,      // 업로드 완료, 처리 대기
-    PROCESSING,   // STT 변환 중
-    COMPLETED,    // 변환 완료
-    FAILED        // 처리 실패
+    TRANSCRIBING,  // 업로드 성공 → 바로 이 상태로 시작 (API 응답에서 확인됨)
+    COMPLETED,     // STT 변환 완료
+    FAILED         // 처리 실패
 }
