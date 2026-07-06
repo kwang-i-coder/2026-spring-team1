@@ -2,12 +2,7 @@ package com.team1.__spring_team1.domain.project.service;
 
 import com.team1.__spring_team1.domain.project.dto.request.ProjectCreateRequest;
 import com.team1.__spring_team1.domain.project.dto.request.ProjectJoinRequest;
-import com.team1.__spring_team1.domain.project.dto.response.ProjectCreateResponse;
-import com.team1.__spring_team1.domain.project.dto.response.ProjectDetailResponse;
-import com.team1.__spring_team1.domain.project.dto.response.ProjectInviteLinkResponse;
-import com.team1.__spring_team1.domain.project.dto.response.ProjectJoinResponse;
-import com.team1.__spring_team1.domain.project.dto.response.ProjectListResponse;
-import com.team1.__spring_team1.domain.project.dto.response.ProjectMemberResponse;
+import com.team1.__spring_team1.domain.project.dto.response.*;
 import com.team1.__spring_team1.domain.project.entity.Project;
 import com.team1.__spring_team1.domain.project.entity.ProjectInvite;
 import com.team1.__spring_team1.domain.project.entity.ProjectMember;
@@ -16,6 +11,8 @@ import com.team1.__spring_team1.domain.project.entity.ProjectStatus;
 import com.team1.__spring_team1.domain.project.repository.ProjectInviteRepository;
 import com.team1.__spring_team1.domain.project.repository.ProjectMemberRepository;
 import com.team1.__spring_team1.domain.project.repository.ProjectRepository;
+import com.team1.__spring_team1.domain.user.entity.User;
+import com.team1.__spring_team1.domain.user.repository.UserRepository;
 import com.team1.__spring_team1.global.exception.BusinessException;
 import com.team1.__spring_team1.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +23,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,6 +35,7 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final ProjectInviteRepository projectInviteRepository;
+    private final UserRepository userRepository;
 
     @Transactional
     public ProjectCreateResponse createProject(Long userId, ProjectCreateRequest request) {
@@ -64,11 +61,11 @@ public class ProjectService {
         return ProjectCreateResponse.from(savedProject, ProjectMemberRole.LEADER);
     }
 
-    public List<ProjectListResponse> getMyProjects(Long userId) {
+    public ProjectListResponse getMyProjects(Long userId) {
         List<ProjectMember> myProjectMembers = projectMemberRepository.findByUserId(userId);
 
         if (myProjectMembers.isEmpty()) {
-            return List.of();
+            return new ProjectListResponse(List.of());
         }
 
         List<Long> projectIds = myProjectMembers.stream()
@@ -81,13 +78,16 @@ public class ProjectService {
                         ProjectMember::getRole
                 ));
 
-        return projectRepository.findByIdInAndStatus(projectIds, ProjectStatus.ACTIVE)
+        List<ProjectListItemResponse> projects = projectRepository
+                .findByIdInAndStatus(projectIds, ProjectStatus.ACTIVE)
                 .stream()
-                .map(project -> ProjectListResponse.of(
+                .map(project -> ProjectListItemResponse.of(
                         project,
                         roleByProjectId.get(project.getId())
                 ))
                 .toList();
+
+        return new ProjectListResponse(projects);
     }
 
     public ProjectDetailResponse getProjectDetail(Long userId, Long projectId) {
@@ -97,14 +97,42 @@ public class ProjectService {
         return ProjectDetailResponse.of(project, projectMember.getRole());
     }
 
-    public List<ProjectMemberResponse> getProjectMembers(Long userId, Long projectId) {
+    public ProjectMemberListResponse getProjectMembers(Long userId, Long projectId) {
         getProjectOrThrow(projectId);
         validateProjectMember(projectId, userId);
 
-        return projectMemberRepository.findByProjectId(projectId)
-                .stream()
-                .map(ProjectMemberResponse::from)
+        List<ProjectMember> projectMembers = projectMemberRepository.findByProjectId(projectId);
+
+        List<Long> userIds = projectMembers.stream()
+                .map(ProjectMember::getUserId)
                 .toList();
+
+        Map<Long, User> userById = userRepository.findByIdIn(userIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        User::getId,
+                        user -> user
+                ));
+
+        List<ProjectMemberResponse> members = projectMembers.stream()
+                .map(projectMember -> {
+                    User user = userById.get(projectMember.getUserId());
+
+                    if (user == null) {
+                        return ProjectMemberResponse.ofMock(
+                                projectMember.getUserId(),
+                                projectMember.getRole()
+                        );
+                    }
+
+                    return ProjectMemberResponse.of(
+                            user,
+                            projectMember.getRole()
+                    );
+                })
+                .toList();
+
+        return new ProjectMemberListResponse(members);
     }
 
     @Transactional
@@ -125,9 +153,8 @@ public class ProjectService {
         ProjectInvite savedInvite = projectInviteRepository.save(projectInvite);
 
         return new ProjectInviteLinkResponse(
-                savedInvite.getProjectId(),
                 savedInvite.getInviteToken(),
-                savedInvite.getExpiresAt()
+                createInviteUrl(savedInvite.getInviteToken())
         );
     }
 
@@ -142,7 +169,7 @@ public class ProjectService {
 
         Long projectId = projectInvite.getProjectId();
 
-        getProjectOrThrow(projectId);
+        Project project = getProjectOrThrow(projectId);
 
         if (projectMemberRepository.existsByProjectIdAndUserId(projectId, userId)) {
             throw new BusinessException(ErrorCode.ALREADY_PROJECT_MEMBER);
@@ -154,13 +181,9 @@ public class ProjectService {
                 ProjectMemberRole.MEMBER
         );
 
-        ProjectMember savedProjectMember = projectMemberRepository.save(projectMember);
+        projectMemberRepository.save(projectMember);
 
-        return new ProjectJoinResponse(
-                savedProjectMember.getProjectId(),
-                savedProjectMember.getUserId(),
-                savedProjectMember.getRole()
-        );
+        return ProjectJoinResponse.of(project, ProjectMemberRole.MEMBER);
     }
 
     private Project getProjectOrThrow(Long projectId) {
@@ -197,5 +220,9 @@ public class ProjectService {
         } while (projectInviteRepository.existsByInviteToken(inviteToken));
 
         return inviteToken;
+    }
+
+    private String createInviteUrl(String inviteToken) {
+        return "http://localhost:3000/projects/join?inviteToken=" + inviteToken;
     }
 }

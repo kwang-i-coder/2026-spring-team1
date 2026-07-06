@@ -1,23 +1,30 @@
 package com.team1.__spring_team1.domain.project.dto.response;
 
-import com.team1.__spring_team1.domain.project.entity.ProjectMember;
 import com.team1.__spring_team1.domain.project.entity.ProjectMemberRole;
-
-import java.time.LocalDateTime;
+import com.team1.__spring_team1.domain.user.entity.User;
 
 public record ProjectMemberResponse(
-        Long projectMemberId,
         Long userId,
-        ProjectMemberRole role,
-        LocalDateTime joinedAt
+        String name,
+        String loginId,
+        ProjectMemberRole role
 ) {
 
-    public static ProjectMemberResponse from(ProjectMember projectMember) {
+    public static ProjectMemberResponse of(User user, ProjectMemberRole role) {
         return new ProjectMemberResponse(
-                projectMember.getId(),
-                projectMember.getUserId(),
-                projectMember.getRole(),
-                projectMember.getJoinedAt()
+                user.getId(),
+                user.getName(),
+                user.getLoginId(),
+                role
+        );
+    }
+
+    public static ProjectMemberResponse ofMock(Long userId, ProjectMemberRole role) {
+        return new ProjectMemberResponse(
+                userId,
+                "개발용 사용자 " + userId,
+                "mock-user-" + userId,
+                role
         );
     }
 }
