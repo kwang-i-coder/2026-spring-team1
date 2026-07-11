@@ -16,8 +16,10 @@ import com.team1.__spring_team1.domain.user.repository.UserRepository;
 import com.team1.__spring_team1.global.exception.BusinessException;
 import com.team1.__spring_team1.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,6 +38,9 @@ public class ProjectService {
     private final ProjectMemberRepository projectMemberRepository;
     private final ProjectInviteRepository projectInviteRepository;
     private final UserRepository userRepository;
+
+    @Value("${app.frontend.base-url}")
+    private String frontendBaseUrl;
 
     @Transactional
     public ProjectCreateResponse createProject(Long userId, ProjectCreateRequest request) {
@@ -223,6 +228,11 @@ public class ProjectService {
     }
 
     private String createInviteUrl(String inviteToken) {
-        return "http://localhost:3000/projects/join?inviteToken=" + inviteToken;
+        return UriComponentsBuilder
+                .fromUriString(frontendBaseUrl)
+                .pathSegment("projects", "join")
+                .queryParam("inviteToken", inviteToken)
+                .build()
+                .toUriString();
     }
 }
