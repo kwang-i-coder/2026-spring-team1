@@ -8,6 +8,7 @@ import com.team1.__spring_team1.global.response.ApiResponse;
 import com.team1.__spring_team1.global.security.CurrentUser;
 import com.team1.__spring_team1.global.security.LoginUser;
 import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +24,7 @@ public class ProjectController {
     @PostMapping
     public ResponseEntity<ApiResponse<ProjectCreateResponse>> createProject(
             @Parameter(hidden = true) @CurrentUser LoginUser loginUser,
-            @RequestBody ProjectCreateRequest request
+            @Valid @RequestBody ProjectCreateRequest request
     ) {
         ProjectCreateResponse response = projectService.createProject(
                 loginUser.userId(),
