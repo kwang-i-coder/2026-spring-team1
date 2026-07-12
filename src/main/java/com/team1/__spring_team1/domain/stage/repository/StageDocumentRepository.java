@@ -16,4 +16,10 @@ public interface StageDocumentRepository extends JpaRepository<StageDocument, Lo
     //이전 단계 확정 여부 검증용
     // generate 호출 전, 이전 stageType의 CONFIRMED 문서가 존재하는지 체크
     boolean existsByProjectIdAndStageTypeAndStatus(Long projectId, StageType stageType, StageDocumentStatus status);
+
+    /**
+     * 특정 프로젝트의 특정 단계 CONFIRMED 문서 최신 1개 조회.
+     * 회광님(F파트) getConfirmedScreenSpec() 에서 사용.
+     */
+    Optional<StageDocument> findTopByProjectIdAndStageTypeAndStatusOrderByCreatedAtDesc(Long projectId, StageType stageType, StageDocumentStatus status);
 }
