@@ -26,7 +26,8 @@ public class MockAuthFilter extends OncePerRequestFilter {
         return path.equals("/actuator/health")
                 || path.equals("/swagger-ui.html")
                 || path.startsWith("/swagger-ui")
-                || path.startsWith("/v3/api-docs");
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/ws/");
     }
 
     @Override
