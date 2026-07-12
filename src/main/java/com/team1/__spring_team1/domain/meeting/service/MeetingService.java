@@ -10,10 +10,15 @@ import com.team1.__spring_team1.domain.meeting.repository.MeetingFileRepository;
 import com.team1.__spring_team1.domain.meeting.repository.MeetingNoteRepository;
 import com.team1.__spring_team1.global.exception.BusinessException;
 import com.team1.__spring_team1.global.exception.ErrorCode;
+import com.team1.__spring_team1.global.s3.S3Directory;
+import com.team1.__spring_team1.global.s3.S3UploadResult;
+import com.team1.__spring_team1.global.s3.S3Uploader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import static com.team1.__spring_team1.global.s3.S3Directory.MEETING_FILE;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +29,8 @@ public class MeetingService {
     private final MeetingFileRepository meetingFileRepository;
     //private final ProjectRepository projectRepository;
     //private final ProjectMemberRepository projectMemberRepository;
-    // private final FileStorageService fileStorageService; // TODO: S3 인프라 준비되면 주입
+    private final S3Uploader s3Uploader;
+
 
     @Transactional
     public MeetingNoteCreateResponse createMeetingNote(
@@ -70,9 +76,11 @@ public class MeetingService {
         validateProjectExists(projectId);
         validateProjectMember(projectId, userId);
 
-        // TODO: S3 연동 후 실제 업로드 결과(url, key)로 교체
-        String storedFileUrl = "TODO";
-        String storedFilePath = "TODO";
+        //S3 연동 후 실제 업로드 결과(url, key)로 교체
+        S3UploadResult uploadResult = uploadToS3(file);
+
+        String storedFileUrl = uploadResult.url();
+        String storedFilePath = uploadResult.key();
 
         MeetingFile meetingFile = new MeetingFile(
                 projectId,
@@ -106,5 +114,13 @@ public class MeetingService {
                 meetingFile.getStatus(),
                 meetingFile.getTranscript()
         );
+    }
+
+    private S3UploadResult uploadToS3(MultipartFile file) {
+        try {
+            return s3Uploader.upload(file, MEETING_FILE);
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
+        }
     }
 }
