@@ -1,40 +1,35 @@
 package com.team1.__spring_team1.domain.wireframe.entity;
 
+import com.team1.__spring_team1.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(name = "wireframe")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Wireframe {
+public class Wireframe extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * TO-DO
-     * 나중에 Project Entity가 완료하면 연관관계로 바꿈
-     */
-    @Column(nullable = false)
+    @Column(name = "project_id", nullable = false)
     private Long projectId;
 
-    /**
-     * Screen 도메인으로.
-     */
-    @Column(nullable = false)
+    @Column(name = "screen_id", nullable = false)
     private Long screenId;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(name="wireframe_json", columnDefinition = "TEXT", nullable = false)
     private String jsonDsl;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name="status", nullable = false, length = 20)
     private WireframeStatus status;
 
-    @Column(nullable = false)
+    @Column(name = "version", nullable = false)
     private Integer version;
 
     public Wireframe(Long projectId, Long screenId, String jsonDsl) {

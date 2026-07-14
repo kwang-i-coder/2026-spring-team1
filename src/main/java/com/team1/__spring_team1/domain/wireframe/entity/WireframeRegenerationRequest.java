@@ -1,5 +1,6 @@
 package com.team1.__spring_team1.domain.wireframe.entity;
 
+import com.team1.__spring_team1.global.entity.BaseTimeEntity;
 import com.team1.__spring_team1.global.exception.BusinessException;
 import com.team1.__spring_team1.global.exception.ErrorCode;
 import jakarta.persistence.*;
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "wireframe_regeneration_requests")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class WireframeRegenerationRequest {
@@ -18,24 +20,26 @@ public class WireframeRegenerationRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "project_id", nullable = false)
     private Long projectId;
 
-    @Column(nullable = false)
+    @Column(name = "screen_id",nullable = false)
     private Long screenId;
 
-    @Column(nullable = false)
+    @Column(name = "requester_id", nullable = false)
     private Long requesterId;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "reason",columnDefinition = "TEXT", nullable = false)
     private String reason;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false, length = 20)
     private WireframeRegenerationRequestStatus status;
 
+    @Column(name = "reviewer_id")
     private Long reviewerId;
 
+    @Column(name = "reviewer_at")
     private LocalDateTime reviewedAt;
 
     public WireframeRegenerationRequest(
