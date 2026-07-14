@@ -34,3 +34,6 @@ cloud:
       bucket: ${AWS_S3_BUCKET:team1-meeting-files}
     region:
       static: ${AWS_REGION:ap-northeast-2}
+app:
+  frontend:
+    base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
