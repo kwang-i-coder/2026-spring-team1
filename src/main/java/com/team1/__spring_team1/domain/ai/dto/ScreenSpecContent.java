@@ -25,7 +25,7 @@ public class ScreenSpecContent {
         private Integer screenId;
         private String name;
         private String purpose;
-        private List<Component> components;
+        private List<Component> componenets;
         private List<Input> inputs;
         private List<Button> buttons;
         private List<Navigation> navigation;
@@ -65,7 +65,7 @@ public class ScreenSpecContent {
     @NoArgsConstructor
     public static class Navigation {
         private String triggerId;
-        private String targetScreenId;
+        private Integer targetScreenId;
         private String targetScreenName;
         private String condition;
     }
