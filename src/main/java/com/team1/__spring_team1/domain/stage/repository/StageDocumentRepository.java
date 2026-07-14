@@ -4,7 +4,6 @@ import com.team1.__spring_team1.domain.stage.entity.StageDocument;
 import com.team1.__spring_team1.domain.stage.entity.StageDocumentStatus;
 import com.team1.__spring_team1.domain.stage.entity.StageType;
 import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.util.Optional;
 
 public interface StageDocumentRepository extends JpaRepository<StageDocument, Long> {
@@ -22,4 +21,7 @@ public interface StageDocumentRepository extends JpaRepository<StageDocument, Lo
      * 회광님(F파트) getConfirmedScreenSpec() 에서 사용.
      */
     Optional<StageDocument> findTopByProjectIdAndStageTypeAndStatusOrderByCreatedAtDesc(Long projectId, StageType stageType, StageDocumentStatus status);
+
+    Optional<StageDocument> findByIdAndProjectIdAndStageTypeAndStatus(
+            Long id, Long projectId, StageType stageType, StageDocumentStatus status);
 }

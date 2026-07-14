@@ -60,6 +60,11 @@ public class StageService {
             throw new BusinessException(ErrorCode.NOT_PROJECT_MEMBER);
         }
 
+        if (stageDocumentRepository.existsByProjectIdAndStageTypeAndStatus(
+                projectId, StageType.PLAN, StageDocumentStatus.CONFIRMED)) {
+            throw new BusinessException(ErrorCode.STAGE_COMPLETED);
+        }
+
         // source 텍스트 조회
         String sourceContent = getSourceContent(request.getSourceType(), request.getSourceId());
 
@@ -93,12 +98,19 @@ public class StageService {
             throw new BusinessException(ErrorCode.NOT_PROJECT_MEMBER);
         }
 
-        // 이전 단계(PLAN) 확정 여부 검증
-        validatePreviousStageConfirmed(projectId, StageType.PLAN);
+        if (stageDocumentRepository.existsByProjectIdAndStageTypeAndStatus(
+                projectId, StageType.FEATURE_SPEC, StageDocumentStatus.CONFIRMED)) {
+            throw new BusinessException(ErrorCode.STAGE_COMPLETED);
+        }
 
         // 이전 단계 문서 조회
-        StageDocument previousDocument = stageDocumentRepository.findById(request.getPreviousDocumentId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.STAGE_DOCUMENT_NOT_FOUND));
+        StageDocument previousDocument = stageDocumentRepository
+                .findByIdAndProjectIdAndStageTypeAndStatus(
+                        request.getPreviousDocumentId(),
+                        projectId,
+                        StageType.PLAN,
+                        StageDocumentStatus.CONFIRMED)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STAGE_STEP_ORDER_INVALID));
 
         // AI로 FEATURE_SPEC 생성
         FeatureSpecContent featureSpecContent = aiDocumentService.generateFeatureSpec(previousDocument.getContent());
@@ -130,12 +142,15 @@ public class StageService {
             throw new BusinessException(ErrorCode.NOT_PROJECT_MEMBER);
         }
 
-        // 이전 단계(FEATURE_SPEC) 확정 여부 검증
-        validatePreviousStageConfirmed(projectId, StageType.FEATURE_SPEC);
+        if (stageDocumentRepository.existsByProjectIdAndStageTypeAndStatus(
+                projectId, StageType.SCREEN_SPEC, StageDocumentStatus.CONFIRMED)) {
+            throw new BusinessException(ErrorCode.STAGE_COMPLETED);
+        }
 
         // 이전 단계 문서 조회
-        StageDocument previousDocument = stageDocumentRepository.findById(request.getPreviousDocumentId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.STAGE_DOCUMENT_NOT_FOUND));
+        StageDocument previousDocument = stageDocumentRepository
+                .findByIdAndProjectIdAndStageTypeAndStatus(request.getPreviousDocumentId(), projectId, StageType.FEATURE_SPEC, StageDocumentStatus.CONFIRMED)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STAGE_STEP_ORDER_INVALID));
 
         // AI로 SCREEN_SPEC 생성
         ScreenSpecContent screenSpecContent = aiDocumentService.generateScreenSpec(previousDocument.getContent());
@@ -242,14 +257,6 @@ public class StageService {
     // ─────────────────────────────────────────
     // private 헬퍼 메서드
     // ─────────────────────────────────────────
-
-    private void validatePreviousStageConfirmed(Long projectId, StageType stageType) {
-        boolean isConfirmed = stageDocumentRepository.existsByProjectIdAndStageTypeAndStatus(
-                projectId, stageType, StageDocumentStatus.CONFIRMED);
-        if (!isConfirmed) {
-            throw new BusinessException(ErrorCode.STAGE_STEP_ORDER_INVALID);
-        }
-    }
 
     private void extractAndSaveScreens(StageDocument document) {
         try {
