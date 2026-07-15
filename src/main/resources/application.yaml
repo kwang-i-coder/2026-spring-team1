@@ -37,3 +37,9 @@ cloud:
 app:
   frontend:
     base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
+
+
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  base-url: https://generativelanguage.googleapis.com
+  model: gemini-3-flash
