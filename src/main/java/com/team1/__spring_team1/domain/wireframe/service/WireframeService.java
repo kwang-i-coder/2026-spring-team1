@@ -75,7 +75,7 @@ public class WireframeService {
         for (Screen screen : requestedScreens) {
             Wireframe existingWireframe = existingWireframeMap.get(screen.getId());
 
-            if (existingWireframe == null) {
+            if (existingWireframe != null) {
                 WireframeDslResponse existingDsl = deserializeWireframe(existingWireframe.getJsonDsl());
                 resultDslMap.put(screen.getId(), existingDsl);
 
