@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Table(name = "wireframe_regeneration_requests")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class WireframeRegenerationRequest {
+public class WireframeRegenerationRequest extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,7 +39,7 @@ public class WireframeRegenerationRequest {
     @Column(name = "reviewer_id")
     private Long reviewerId;
 
-    @Column(name = "reviewer_at")
+    @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
 
     public WireframeRegenerationRequest(
