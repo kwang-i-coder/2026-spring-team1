@@ -43,3 +43,21 @@ spring:
       ddl-auto: create-drop
     database-platform: org.hibernate.dialect.H2Dialect
     open-in-view: false
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY_ID}
+      secret-key: ${AWS_SECRET_ACCESS_KEY}
+    s3:
+      bucket: ${AWS_S3_BUCKET:team1-meeting-files}
+    region:
+      static: ${AWS_REGION:ap-northeast-2}
+app:
+  frontend:
+    base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
+
+
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  base-url: https://generativelanguage.googleapis.com
+  model: gemini-3-flash
