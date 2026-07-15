@@ -1,15 +1,16 @@
 package com.team1.__spring_team1.domain.wireframe.controller;
 
+import com.team1.__spring_team1.domain.wireframe.dto.request.WireframeGenerateRequest;
 import com.team1.__spring_team1.domain.wireframe.dto.response.ScreenWireframeResponse;
 import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeDslResponse;
 import com.team1.__spring_team1.domain.wireframe.service.WireframeService;
 import com.team1.__spring_team1.global.response.ApiResponse;
 import com.team1.__spring_team1.global.security.CurrentUser;
 import com.team1.__spring_team1.global.security.LoginUser;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -18,6 +19,13 @@ import java.util.List;
 public class WireframeController {
 
     private final WireframeService wireframeService;
+
+    // 와이어프레임 생성
+    @PostMapping("/projects/{projectId}/stages/wireframes/generate")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<List<ScreenWireframeResponse>> generateWireframes(@PathVariable Long projectId, @Valid @RequestBody WireframeGenerateRequest request, @CurrentUser LoginUser loginUser) {
+        return ApiResponse.success(wireframeService.generateWireframe(projectId, request, loginUser));
+    }
 
     // 프로젝트 화면 목록 조회
     @GetMapping("/projects/{projectId}/screens")
