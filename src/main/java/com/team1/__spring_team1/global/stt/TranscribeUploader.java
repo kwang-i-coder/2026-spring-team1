@@ -28,8 +28,8 @@ public class TranscribeUploader {
                 .transcriptionJobName(jobName)
                 .languageCode(LanguageCode.KO_KR)
                 .media(Media.builder().mediaFileUri(mediaFileUri).build())
-                .outputBucketName(bucket)
                 .outputKey(outputKey)
+                .outputBucketName(bucket)
                 .build();
 
         transcribeClient.startTranscriptionJob(request);
