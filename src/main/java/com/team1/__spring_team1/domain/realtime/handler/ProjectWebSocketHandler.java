@@ -9,6 +9,9 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import com.team1.__spring_team1.global.exception.BusinessException;
+import com.team1.__spring_team1.global.exception.ErrorCode;
+
 
 import java.io.IOException;
 import java.net.URI;
@@ -140,7 +143,7 @@ public class ProjectWebSocketHandler extends TextWebSocketHandler {
         URI uri = session.getUri();
 
         if (uri == null) {
-            throw new IllegalArgumentException("WebSocket URI를 확인할 수 없습니다.");
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
 
         String path = uri.getPath();
@@ -149,7 +152,7 @@ public class ProjectWebSocketHandler extends TextWebSocketHandler {
         try {
             return Long.parseLong(parts[parts.length - 1]);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("projectId는 숫자여야 합니다.");
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
     }
 
@@ -157,7 +160,7 @@ public class ProjectWebSocketHandler extends TextWebSocketHandler {
         URI uri = session.getUri();
 
         if (uri == null || uri.getQuery() == null) {
-            throw new IllegalArgumentException("WebSocket 연결 시 userId 쿼리 파라미터가 필요합니다.");
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
 
         String[] queryParams = uri.getQuery().split("&");
@@ -169,12 +172,12 @@ public class ProjectWebSocketHandler extends TextWebSocketHandler {
                 try {
                     return Long.parseLong(keyValue[1]);
                 } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("userId는 숫자여야 합니다.");
+                    throw new BusinessException(ErrorCode.INVALID_INPUT);
                 }
             }
         }
 
-        throw new IllegalArgumentException("WebSocket 연결 시 userId 쿼리 파라미터가 필요합니다.");
+        throw new BusinessException(ErrorCode.INVALID_INPUT);
     }
 
     private Long getProjectId(WebSocketSession session) {
