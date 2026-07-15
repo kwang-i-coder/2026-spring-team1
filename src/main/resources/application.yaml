@@ -25,6 +25,15 @@ logging:
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
 
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY_ID}
+      secret-key: ${AWS_SECRET_ACCESS_KEY}
+    s3:
+      bucket: ${AWS_S3_BUCKET:team1-meeting-files}
+    region:
+      static: ${AWS_REGION:ap-northeast-2}
 app:
   frontend:
     base-url: ${FRONTEND_BASE_URL:http://localhost:3000}

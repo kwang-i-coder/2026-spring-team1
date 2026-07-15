@@ -35,6 +35,12 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
+
+	// ↓ 여기 새로 추가
+	implementation platform('software.amazon.awssdk:bom:2.29.1')
+	implementation 'software.amazon.awssdk:s3'
+	implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+	implementation 'software.amazon.awssdk:transcribe'
 }
 
 tasks.named('test') {
