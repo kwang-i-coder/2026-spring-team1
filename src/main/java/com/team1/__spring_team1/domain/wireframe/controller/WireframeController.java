@@ -1,8 +1,11 @@
 package com.team1.__spring_team1.domain.wireframe.controller;
 
 import com.team1.__spring_team1.domain.wireframe.dto.request.WireframeGenerateRequest;
+import com.team1.__spring_team1.domain.wireframe.dto.request.WireframeRegenerationCreateRequest;
 import com.team1.__spring_team1.domain.wireframe.dto.response.ScreenWireframeResponse;
 import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeDslResponse;
+import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeRegenerationCreateResponse;
+import com.team1.__spring_team1.domain.wireframe.service.WireframeRegenerationService;
 import com.team1.__spring_team1.domain.wireframe.service.WireframeService;
 import com.team1.__spring_team1.global.response.ApiResponse;
 import com.team1.__spring_team1.global.security.CurrentUser;
@@ -19,6 +22,7 @@ import java.util.List;
 public class WireframeController {
 
     private final WireframeService wireframeService;
+    private final WireframeRegenerationService wireframeRegenerationService;
 
     // 와이어프레임 생성
     @PostMapping("/projects/{projectId}/stages/wireframes/generate")
@@ -37,5 +41,13 @@ public class WireframeController {
     @GetMapping("/screens/{screenId}/wireframe")
     public ApiResponse<WireframeDslResponse> getWireframe(@PathVariable Long screenId, @CurrentUser LoginUser loginUser) {
         return ApiResponse.success(wireframeService.getWireframe(screenId, loginUser));
+    }
+
+    // 와이어프레임 재생성 요청 등록
+    @PostMapping("/screens/{screenId}/wireframe/regeneration-requests")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<WireframeRegenerationCreateResponse>
+    createRegenerationRequest(@PathVariable Long screenId, @Valid @RequestBody WireframeRegenerationCreateRequest request, @CurrentUser LoginUser loginUser) {
+        return ApiResponse.success(wireframeRegenerationService.createRegenerationRequest(screenId, request, loginUser));
     }
 }
