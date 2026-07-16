@@ -7,7 +7,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum S3Directory {
 
-    MEETING_FILE("meeting-file");
+    MEETING_FILE("meeting-file"),
+    TRANSCRIBE_RESULT("transcribe-result");
 
     private final String path;
 }
