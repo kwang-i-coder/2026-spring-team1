@@ -8,6 +8,8 @@ import com.team1.__spring_team1.domain.meeting.entity.MeetingFile;
 import com.team1.__spring_team1.domain.meeting.entity.MeetingNote;
 import com.team1.__spring_team1.domain.meeting.repository.MeetingFileRepository;
 import com.team1.__spring_team1.domain.meeting.repository.MeetingNoteRepository;
+import com.team1.__spring_team1.domain.project.repository.ProjectMemberRepository;
+import com.team1.__spring_team1.domain.project.repository.ProjectRepository;
 import com.team1.__spring_team1.global.exception.BusinessException;
 import com.team1.__spring_team1.global.exception.ErrorCode;
 import com.team1.__spring_team1.global.s3.S3Directory;
@@ -29,8 +31,8 @@ public class MeetingService {
 
     private final MeetingNoteRepository meetingNoteRepository;
     private final MeetingFileRepository meetingFileRepository;
-    //private final ProjectRepository projectRepository;
-    //private final ProjectMemberRepository projectMemberRepository;
+    private final ProjectRepository projectRepository;
+    private final ProjectMemberRepository projectMemberRepository;
     private final S3Uploader s3Uploader;
     private final TranscribeUploader transcribeUploader;
 
@@ -58,15 +60,13 @@ public class MeetingService {
     }
 
     private void validateProjectExists(Long projectId) {
-        // TODO: projectRepo 병합 시 if (!projectRepository.existsById(projectId))로 교체
-        if (false) {
+        if (!projectRepository.existsById(projectId)) {
             throw new BusinessException(ErrorCode.PROJECT_NOT_FOUND);
         }
     }
 
     private void validateProjectMember(Long projectId, Long userId) {
-        // TODO: projectRepo 병합 시 true => projectMemberRepository.existsByProjectIdAndUserId(projectId, userId);로 교체
-        boolean isMember = true;
+        boolean isMember = projectMemberRepository.existsByProjectIdAndUserId(projectId, userId);
         if (!isMember) {
             throw new BusinessException(ErrorCode.NOT_PROJECT_MEMBER);
         }
