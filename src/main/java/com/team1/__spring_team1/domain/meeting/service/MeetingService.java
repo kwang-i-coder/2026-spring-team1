@@ -8,12 +8,16 @@ import com.team1.__spring_team1.domain.meeting.entity.MeetingFile;
 import com.team1.__spring_team1.domain.meeting.entity.MeetingNote;
 import com.team1.__spring_team1.domain.meeting.repository.MeetingFileRepository;
 import com.team1.__spring_team1.domain.meeting.repository.MeetingNoteRepository;
+import com.team1.__spring_team1.domain.project.repository.ProjectMemberRepository;
+import com.team1.__spring_team1.domain.project.repository.ProjectRepository;
 import com.team1.__spring_team1.global.exception.BusinessException;
 import com.team1.__spring_team1.global.exception.ErrorCode;
 import com.team1.__spring_team1.global.s3.S3Directory;
 import com.team1.__spring_team1.global.s3.S3UploadResult;
 import com.team1.__spring_team1.global.s3.S3Uploader;
+import com.team1.__spring_team1.global.stt.TranscribeUploader;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,10 +31,13 @@ public class MeetingService {
 
     private final MeetingNoteRepository meetingNoteRepository;
     private final MeetingFileRepository meetingFileRepository;
-    //private final ProjectRepository projectRepository;
-    //private final ProjectMemberRepository projectMemberRepository;
+    private final ProjectRepository projectRepository;
+    private final ProjectMemberRepository projectMemberRepository;
     private final S3Uploader s3Uploader;
+    private final TranscribeUploader transcribeUploader;
 
+    @Value("${cloud.aws.s3.bucket}")
+    private String bucket;
 
     @Transactional
     public MeetingNoteCreateResponse createMeetingNote(
@@ -53,15 +60,13 @@ public class MeetingService {
     }
 
     private void validateProjectExists(Long projectId) {
-        // TODO: projectRepo 병합 시 if (!projectRepository.existsById(projectId))로 교체
-        if (false) {
+        if (!projectRepository.existsById(projectId)) {
             throw new BusinessException(ErrorCode.PROJECT_NOT_FOUND);
         }
     }
 
     private void validateProjectMember(Long projectId, Long userId) {
-        // TODO: projectRepo 병합 시 true => projectMemberRepository.existsByProjectIdAndUserId(projectId, userId);로 교체
-        boolean isMember = true;
+        boolean isMember = projectMemberRepository.existsByProjectIdAndUserId(projectId, userId);
         if (!isMember) {
             throw new BusinessException(ErrorCode.NOT_PROJECT_MEMBER);
         }
@@ -73,10 +78,11 @@ public class MeetingService {
             Long userId,
             MultipartFile file
     ) {
+        //유저 검증
         validateProjectExists(projectId);
         validateProjectMember(projectId, userId);
 
-        //S3 연동 후 실제 업로드 결과(url, key)로 교체
+        //S3에 파일 전송. url, key 수신.
         S3UploadResult uploadResult = uploadToS3(file);
 
         String storedFileUrl = uploadResult.url();
@@ -92,9 +98,13 @@ public class MeetingService {
                 file.getSize(),
                 userId
         );
+
+        //DB에 MeetingFile 저장
         meetingFileRepository.save(meetingFile);
 
-        // TODO: STT 비동기 작업 트리거
+        //STT 비동기 작업 트리거. -> transcribe - 백엔드 내에서 지속적 풀링으로 완료 상태 확인.
+        // 완료 시 백엔드 - 프론트 풀링을 통해 프론트에 완료 및 변환 파일 제공.
+        startTranscription(meetingFile, uploadResult);
 
         return new MeetingFileUploadResponse(
                 meetingFile.getId(),
@@ -121,6 +131,15 @@ public class MeetingService {
             return s3Uploader.upload(file, MEETING_FILE);
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
+        }
+    }
+
+    private void startTranscription(MeetingFile meetingFile, S3UploadResult uploadResult) {
+        String mediaFileUri = String.format("s3://%s/%s", bucket, uploadResult.key());
+        try {
+            transcribeUploader.startTranscriptionJob(meetingFile.getId(), mediaFileUri);
+        } catch (Exception e) {
+            meetingFile.fail("STT 변환 시작에 실패했습니다.");
         }
     }
 }
