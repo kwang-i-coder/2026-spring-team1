@@ -60,4 +60,25 @@ public class WireframePromptBuilder {
                 screenSpecJson
         );
     }
+
+    public String buildForRegeneration(
+            String screenSpecJson,
+            String reason
+    ) {
+        String regenerationSource = """
+            [ORIGINAL SCREEN SPECIFICATION]
+            %s
+
+            [REGENERATION REQUEST]
+            Apply the following request when generating the new wireframe.
+            Preserve parts that are not mentioned unless adjustment is
+            required to prevent overlap or layout problems.
+
+            %s
+            """.formatted(
+                screenSpecJson,
+                reason
+        );
+        return build(regenerationSource);
+    }
 }

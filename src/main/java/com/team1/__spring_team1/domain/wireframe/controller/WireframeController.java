@@ -3,6 +3,7 @@ package com.team1.__spring_team1.domain.wireframe.controller;
 import com.team1.__spring_team1.domain.wireframe.dto.request.WireframeGenerateRequest;
 import com.team1.__spring_team1.domain.wireframe.dto.request.WireframeRegenerationCreateRequest;
 import com.team1.__spring_team1.domain.wireframe.dto.response.*;
+import com.team1.__spring_team1.domain.wireframe.service.WireframeRegenerationAcceptService;
 import com.team1.__spring_team1.domain.wireframe.service.WireframeRegenerationService;
 import com.team1.__spring_team1.domain.wireframe.service.WireframeService;
 import com.team1.__spring_team1.global.response.ApiResponse;
@@ -21,6 +22,7 @@ public class WireframeController {
 
     private final WireframeService wireframeService;
     private final WireframeRegenerationService wireframeRegenerationService;
+    private final WireframeRegenerationAcceptService wireframeRegenerationAcceptService;
 
     // 와이어프레임 생성
     @PostMapping("/projects/{projectId}/stages/wireframes/generate")
@@ -52,6 +54,12 @@ public class WireframeController {
     @GetMapping("/projects/{projectId}/wireframe/regeneration-requests")
     public ApiResponse<WireframeRegenerationListResponse> getRegenerationRequests(@PathVariable Long projectId, @CurrentUser LoginUser loginUser) {
         return ApiResponse.success(wireframeRegenerationService.getRegenerationRequests(projectId, loginUser));
+    }
+
+    // 와이어프레임 재생성 요청 승인
+    @PostMapping("/wireframe/regeneration-requests/{requestId}/accept")
+    public ApiResponse<WireframeRegenerationAcceptResponse> acceptRegenerationRequest(@PathVariable Long requestId, @CurrentUser LoginUser loginUser) {
+        return ApiResponse.success(wireframeRegenerationAcceptService.acceptRegenerationRequest(requestId, loginUser));
     }
 
     // 와이어프레임 재생성 요청 거절

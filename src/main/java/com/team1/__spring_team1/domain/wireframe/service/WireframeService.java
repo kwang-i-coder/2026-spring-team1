@@ -100,6 +100,31 @@ public class WireframeService {
                 .toList();
     }
 
+    @Transactional
+    public WireframeDslResponse regenerateWireframe(Long projectId, Long screenId, String reason) {
+        Screen screen = screenRepository.findById(screenId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SCREEN_NOT_FOUND));
+
+        if (!Objects.equals(screen.getProjectId(), projectId)) {
+            throw new BusinessException(ErrorCode.SCREEN_NOT_FOUND);
+        }
+
+        Wireframe wireframe = wireframeRepository.findByScreenId(screenId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.WIREFRAME_NOT_FOUND));
+
+        if (!Objects.equals(wireframe.getProjectId(), projectId)) {
+            throw new BusinessException(ErrorCode.WIREFRAME_NOT_FOUND);
+        }
+
+        WireframeContent generatedContent = aiDocumentService.regenerateWireframe(screen.getSpecJson(), reason);
+
+        WireframeDslResponse generatedDsl = toWireframeDslResponse(generatedContent);
+
+        String jsonDsl = serializeWireframe(generatedDsl);
+        wireframe.regenerate(jsonDsl);
+        return generatedDsl;
+    }
+
     // 화면 목록 조회
     public List<ScreenWireframeResponse> getScreens(Long projectId, LoginUser loginUser) {
         projectPermissionService.validateProjectMember(projectId, loginUser.userId());

@@ -5,17 +5,13 @@ import com.team1.__spring_team1.domain.ai.dto.WireframeContent;
 import com.team1.__spring_team1.domain.ai.service.AiDocumentService;
 import com.team1.__spring_team1.domain.project.service.ProjectPermissionService;
 import com.team1.__spring_team1.domain.stage.entity.Screen;
-import com.team1.__spring_team1.domain.stage.entity.StageDocument;
 import com.team1.__spring_team1.domain.stage.repository.ScreenRepository;
 import com.team1.__spring_team1.domain.stage.service.StageService;
-import com.team1.__spring_team1.domain.wireframe.dto.request.WireframeGenerateRequest;
-import com.team1.__spring_team1.domain.wireframe.dto.response.ScreenWireframeResponse;
 import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeDslResponse;
 import com.team1.__spring_team1.domain.wireframe.entity.Wireframe;
 import com.team1.__spring_team1.domain.wireframe.repository.WireframeRepository;
 import com.team1.__spring_team1.global.exception.BusinessException;
 import com.team1.__spring_team1.global.exception.ErrorCode;
-import com.team1.__spring_team1.global.security.LoginUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,16 +23,13 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class WireframeServiceTest {
+class WireframeServiceRegenerationTest {
 
     @Mock
     private WireframeRepository wireframeRepository;
@@ -48,544 +41,86 @@ class WireframeServiceTest {
     private StageService stageService;
 
     @Mock
-    private ProjectPermissionService projectPermissionService;
+    private ProjectPermissionService
+            projectPermissionService;
 
     @Mock
     private AiDocumentService aiDocumentService;
 
     @Mock
-    private StageDocument stageDocument;
+    private Screen screen;
 
     @Mock
-    private Screen firstScreen;
+    private WireframeContent generatedContent;
 
     @Mock
-    private Screen secondScreen;
-
-    @Mock
-    private Wireframe wireframe;
+    private WireframeContent.Element generatedElement;
 
     private WireframeService wireframeService;
 
-    private ObjectMapper objectMapper;
-
-    private LoginUser loginUser;
-
     @BeforeEach
     void setUp() {
-        objectMapper = new ObjectMapper();
-
         wireframeService = new WireframeService(
                 wireframeRepository,
                 screenRepository,
                 stageService,
                 projectPermissionService,
                 aiDocumentService,
-                objectMapper
-        );
-
-        loginUser = new LoginUser(
-                100L,
-                "test-user",
-                "테스트 사용자"
+                new ObjectMapper()
         );
     }
 
     @Test
-    @DisplayName("선택한 화면들의 와이어프레임을 생성한다")
-    void generateWireframes() throws Exception {
+    @DisplayName(
+            "재생성된 JSON DSL로 기존 와이어프레임을 교체하고 버전을 증가시킨다"
+    )
+    void regenerateWireframe() {
         // given
         Long projectId = 1L;
-
-        WireframeGenerateRequest request =
-                new WireframeGenerateRequest(
-                        List.of(10L, 11L)
-                );
-
-        when(stageDocument.getId())
-                .thenReturn(50L);
-
-        when(firstScreen.getId())
-                .thenReturn(10L);
-
-        when(firstScreen.getName())
-                .thenReturn("프로젝트 목록 화면");
-
-        when(firstScreen.getSpecJson())
-                .thenReturn(
-                        "{\"name\":\"프로젝트 목록 화면\"}"
-                );
-
-        when(secondScreen.getId())
-                .thenReturn(11L);
-
-        when(secondScreen.getName())
-                .thenReturn("프로젝트 생성 화면");
-
-        when(secondScreen.getSpecJson())
-                .thenReturn(
-                        "{\"name\":\"프로젝트 생성 화면\"}"
-                );
-
-        when(stageService.getConfirmedScreenSpec(projectId))
-                .thenReturn(stageDocument);
-
-        when(screenRepository
-                .findByStageDocumentIdOrderByScreenOrder(50L))
-                .thenReturn(List.of(
-                        firstScreen,
-                        secondScreen
-                ));
-
-        when(wireframeRepository.findAllByProjectId(projectId))
-                .thenReturn(List.of());
-
-        when(aiDocumentService.generateWireframe(
-                firstScreen.getSpecJson()
-        )).thenReturn(
-                createWireframeContent("first-title")
-        );
-
-        when(aiDocumentService.generateWireframe(
-                secondScreen.getSpecJson()
-        )).thenReturn(
-                createWireframeContent("second-title")
-        );
-
-        // when
-        List<ScreenWireframeResponse> responses =
-                wireframeService.generateWireframe(
-                        projectId,
-                        request,
-                        loginUser
-                );
-
-        // then
-        assertThat(responses).hasSize(2);
-
-        assertThat(responses.get(0).screenId())
-                .isEqualTo(10L);
-
-        assertThat(responses.get(0).screenName())
-                .isEqualTo("프로젝트 목록 화면");
-
-        assertThat(responses.get(0).wireframe())
-                .isNotNull();
-
-        assertThat(responses.get(0).wireframe().width())
-                .isEqualTo(375);
-
-        assertThat(responses.get(0).wireframe().height())
-                .isEqualTo(812);
-
-        assertThat(responses.get(0)
-                .wireframe()
-                .elements()
-                .get(0)
-                .id())
-                .isEqualTo("first-title");
-
-        assertThat(responses.get(1).screenId())
-                .isEqualTo(11L);
-
-        assertThat(responses.get(1).screenName())
-                .isEqualTo("프로젝트 생성 화면");
-
-        assertThat(responses.get(1)
-                .wireframe()
-                .elements()
-                .get(0)
-                .id())
-                .isEqualTo("second-title");
-
-        verify(projectPermissionService)
-                .validateProjectMember(
-                        projectId,
-                        loginUser.userId()
-                );
-
-        verify(aiDocumentService)
-                .generateWireframe(
-                        firstScreen.getSpecJson()
-                );
-
-        verify(aiDocumentService)
-                .generateWireframe(
-                        secondScreen.getSpecJson()
-                );
-
-        verify(wireframeRepository)
-                .saveAll(anyList());
-    }
-
-    @Test
-    @DisplayName("이미 와이어프레임이 존재하면 AI를 다시 호출하지 않는다")
-    void generateWireframesReturnsExistingWireframe() {
-        // given
-        Long projectId = 1L;
-
-        WireframeGenerateRequest request =
-                new WireframeGenerateRequest(
-                        List.of(10L)
-                );
-
-        when(stageDocument.getId())
-                .thenReturn(50L);
-
-        when(firstScreen.getId())
-                .thenReturn(10L);
-
-        when(firstScreen.getName())
-                .thenReturn("프로젝트 목록 화면");
-
-        when(stageService.getConfirmedScreenSpec(projectId))
-                .thenReturn(stageDocument);
-
-        when(screenRepository
-                .findByStageDocumentIdOrderByScreenOrder(50L))
-                .thenReturn(List.of(firstScreen));
-
-        when(wireframe.getScreenId())
-                .thenReturn(10L);
-
-        when(wireframe.getJsonDsl())
-                .thenReturn(
-                        validWireframeJson("existing-title")
-                );
-
-        when(wireframeRepository.findAllByProjectId(projectId))
-                .thenReturn(List.of(wireframe));
-
-        // when
-        List<ScreenWireframeResponse> responses =
-                wireframeService.generateWireframe(
-                        projectId,
-                        request,
-                        loginUser
-                );
-
-        // then
-        assertThat(responses).hasSize(1);
-
-        assertThat(responses.get(0).screenId())
-                .isEqualTo(10L);
-
-        assertThat(responses.get(0).wireframe())
-                .isNotNull();
-
-        assertThat(responses.get(0)
-                .wireframe()
-                .elements()
-                .get(0)
-                .id())
-                .isEqualTo("existing-title");
-
-        verifyNoInteractions(aiDocumentService);
-
-        verify(wireframeRepository, never())
-                .saveAll(anyList());
-    }
-
-    @Test
-    @DisplayName("최신 확정 화면 명세에 없는 화면은 생성할 수 없다")
-    void generateWireframesScreenNotFound() {
-        // given
-        Long projectId = 1L;
-
-        WireframeGenerateRequest request =
-                new WireframeGenerateRequest(
-                        List.of(999L)
-                );
-
-        when(stageDocument.getId())
-                .thenReturn(50L);
-
-        when(firstScreen.getId())
-                .thenReturn(10L);
-
-        when(stageService.getConfirmedScreenSpec(projectId))
-                .thenReturn(stageDocument);
-
-        when(screenRepository
-                .findByStageDocumentIdOrderByScreenOrder(50L))
-                .thenReturn(List.of(firstScreen));
-
-        // when & then
-        assertThatThrownBy(() ->
-                wireframeService.generateWireframe(
-                        projectId,
-                        request,
-                        loginUser
-                )
-        )
-                .isInstanceOf(BusinessException.class)
-                .satisfies(exception -> {
-                    BusinessException businessException =
-                            (BusinessException) exception;
-
-                    assertThat(
-                            businessException.getErrorCode()
-                    ).isEqualTo(
-                            ErrorCode.SCREEN_NOT_FOUND
-                    );
-                });
-
-        verifyNoInteractions(aiDocumentService);
-
-        verify(wireframeRepository, never())
-                .saveAll(anyList());
-    }
-
-    @Test
-    @DisplayName("중복된 화면 ID는 한 번만 생성한다")
-    void generateWireframesRemovesDuplicateScreenIds()
-            throws Exception {
-        // given
-        Long projectId = 1L;
-
-        WireframeGenerateRequest request =
-                new WireframeGenerateRequest(
-                        List.of(10L, 10L)
-                );
-
-        when(stageDocument.getId())
-                .thenReturn(50L);
-
-        when(firstScreen.getId())
-                .thenReturn(10L);
-
-        when(firstScreen.getName())
-                .thenReturn("프로젝트 목록 화면");
-
-        when(firstScreen.getSpecJson())
-                .thenReturn(
-                        "{\"name\":\"프로젝트 목록 화면\"}"
-                );
-
-        when(stageService.getConfirmedScreenSpec(projectId))
-                .thenReturn(stageDocument);
-
-        when(screenRepository
-                .findByStageDocumentIdOrderByScreenOrder(50L))
-                .thenReturn(List.of(firstScreen));
-
-        when(wireframeRepository.findAllByProjectId(projectId))
-                .thenReturn(List.of());
-
-        when(aiDocumentService.generateWireframe(
-                firstScreen.getSpecJson()
-        )).thenReturn(
-                createWireframeContent("title")
-        );
-
-        // when
-        List<ScreenWireframeResponse> responses =
-                wireframeService.generateWireframe(
-                        projectId,
-                        request,
-                        loginUser
-                );
-
-        // then
-        assertThat(responses).hasSize(1);
-
-        verify(aiDocumentService, times(1))
-                .generateWireframe(
-                        firstScreen.getSpecJson()
-                );
-
-        verify(wireframeRepository, times(1))
-                .saveAll(anyList());
-    }
-
-    @Test
-    @DisplayName("AI 생성 중 하나라도 실패하면 새 와이어프레임을 저장하지 않는다")
-    void generateWireframesDoesNotSaveWhenAiFails()
-            throws Exception {
-        // given
-        Long projectId = 1L;
-
-        WireframeGenerateRequest request =
-                new WireframeGenerateRequest(
-                        List.of(10L, 11L)
-                );
-
-        when(stageDocument.getId())
-                .thenReturn(50L);
-
-        when(firstScreen.getId())
-                .thenReturn(10L);
-
-        when(firstScreen.getSpecJson())
-                .thenReturn(
-                        "{\"name\":\"첫 번째 화면\"}"
-                );
-
-        when(secondScreen.getId())
-                .thenReturn(11L);
-
-        when(secondScreen.getSpecJson())
-                .thenReturn(
-                        "{\"name\":\"두 번째 화면\"}"
-                );
-
-        when(stageService.getConfirmedScreenSpec(projectId))
-                .thenReturn(stageDocument);
-
-        when(screenRepository
-                .findByStageDocumentIdOrderByScreenOrder(50L))
-                .thenReturn(List.of(
-                        firstScreen,
-                        secondScreen
-                ));
-
-        when(wireframeRepository.findAllByProjectId(projectId))
-                .thenReturn(List.of());
-
-        when(aiDocumentService.generateWireframe(
-                firstScreen.getSpecJson()
-        )).thenReturn(
-                createWireframeContent("first-title")
-        );
-
-        when(aiDocumentService.generateWireframe(
-                secondScreen.getSpecJson()
-        )).thenThrow(
-                new BusinessException(
-                        ErrorCode.AI_GENERATION_FAILED
-                )
-        );
-
-        // when & then
-        assertThatThrownBy(() ->
-                wireframeService.generateWireframe(
-                        projectId,
-                        request,
-                        loginUser
-                )
-        )
-                .isInstanceOf(BusinessException.class)
-                .satisfies(exception -> {
-                    BusinessException businessException =
-                            (BusinessException) exception;
-
-                    assertThat(
-                            businessException.getErrorCode()
-                    ).isEqualTo(
-                            ErrorCode.AI_GENERATION_FAILED
-                    );
-                });
-
-        verify(wireframeRepository, never())
-                .saveAll(anyList());
-    }
-
-    @Test
-    @DisplayName("프로젝트 화면 목록과 생성된 와이어프레임을 함께 조회한다")
-    void getScreens() {
-        // given
-        Long projectId = 1L;
-
-        when(stageDocument.getId())
-                .thenReturn(50L);
-
-        when(firstScreen.getId())
-                .thenReturn(10L);
-
-        when(firstScreen.getName())
-                .thenReturn("프로젝트 목록 화면");
-
-        when(secondScreen.getId())
-                .thenReturn(11L);
-
-        when(secondScreen.getName())
-                .thenReturn("프로젝트 생성 화면");
-
-        when(wireframe.getScreenId())
-                .thenReturn(10L);
-
-        when(wireframe.getJsonDsl())
-                .thenReturn(
-                        validWireframeJson("title")
-                );
-
-        when(stageService.getConfirmedScreenSpec(projectId))
-                .thenReturn(stageDocument);
-
-        when(screenRepository
-                .findByStageDocumentIdOrderByScreenOrder(50L))
-                .thenReturn(List.of(
-                        firstScreen,
-                        secondScreen
-                ));
-
-        when(wireframeRepository.findAllByProjectId(projectId))
-                .thenReturn(List.of(wireframe));
-
-        // when
-        List<ScreenWireframeResponse> responses =
-                wireframeService.getScreens(
-                        projectId,
-                        loginUser
-                );
-
-        // then
-        assertThat(responses).hasSize(2);
-
-        assertThat(responses.get(0).screenId())
-                .isEqualTo(10L);
-
-        assertThat(responses.get(0).screenName())
-                .isEqualTo("프로젝트 목록 화면");
-
-        assertThat(responses.get(0).wireframe())
-                .isNotNull();
-
-        assertThat(responses.get(0).wireframe().width())
-                .isEqualTo(375);
-
-        assertThat(responses.get(0).wireframe().height())
-                .isEqualTo(812);
-
-        assertThat(responses.get(1).screenId())
-                .isEqualTo(11L);
-
-        assertThat(responses.get(1).wireframe())
-                .isNull();
-
-        verify(projectPermissionService)
-                .validateProjectMember(
-                        projectId,
-                        loginUser.userId()
-                );
-    }
-
-    @Test
-    @DisplayName("화면 ID로 와이어프레임을 조회한다")
-    void getWireframe() {
-        // given
         Long screenId = 10L;
-        Long projectId = 1L;
 
-        when(firstScreen.getProjectId())
-                .thenReturn(projectId);
+        String screenSpecJson =
+                "{\"name\":\"로그인 화면\"}";
 
-        when(wireframe.getJsonDsl())
-                .thenReturn(
-                        validWireframeJson("title")
+        String reason =
+                "로그인 버튼을 화면 하단에 배치해주세요.";
+
+        String oldJsonDsl =
+                "{\"type\":\"screen\",\"width\":375,"
+                        + "\"height\":812,\"elements\":[]}";
+
+        Wireframe wireframe =
+                new Wireframe(
+                        projectId,
+                        screenId,
+                        oldJsonDsl
                 );
 
         when(screenRepository.findById(screenId))
-                .thenReturn(Optional.of(firstScreen));
+                .thenReturn(Optional.of(screen));
+
+        when(screen.getProjectId())
+                .thenReturn(projectId);
+
+        when(screen.getSpecJson())
+                .thenReturn(screenSpecJson);
 
         when(wireframeRepository.findByScreenId(screenId))
                 .thenReturn(Optional.of(wireframe));
 
+        mockGeneratedContent();
+
+        when(aiDocumentService.regenerateWireframe(
+                screenSpecJson,
+                reason
+        )).thenReturn(generatedContent);
+
         // when
         WireframeDslResponse response =
-                wireframeService.getWireframe(
+                wireframeService.regenerateWireframe(
+                        projectId,
                         screenId,
-                        loginUser
+                        reason
                 );
 
         // then
@@ -601,113 +136,239 @@ class WireframeServiceTest {
         assertThat(response.elements())
                 .hasSize(1);
 
-        verify(projectPermissionService)
-                .validateProjectMember(
-                        projectId,
-                        loginUser.userId()
+        assertThat(response.elements().getFirst().id())
+                .isEqualTo("login-button");
+
+        assertThat(wireframe.getVersion())
+                .isEqualTo(2);
+
+        assertThat(wireframe.getJsonDsl())
+                .isNotEqualTo(oldJsonDsl);
+
+        assertThat(wireframe.getJsonDsl())
+                .contains("\"id\":\"login-button\"");
+
+        verify(aiDocumentService)
+                .regenerateWireframe(
+                        screenSpecJson,
+                        reason
                 );
     }
 
     @Test
-    @DisplayName("존재하지 않는 화면이면 SCREEN_NOT_FOUND 예외가 발생한다")
-    void getWireframeScreenNotFound() {
+    @DisplayName(
+            "존재하지 않는 화면은 재생성할 수 없다"
+    )
+    void screenNotFound() {
         // given
+        Long projectId = 1L;
         Long screenId = 999L;
 
         when(screenRepository.findById(screenId))
                 .thenReturn(Optional.empty());
 
-        // when & then
-        assertThatThrownBy(() ->
-                wireframeService.getWireframe(
-                        screenId,
-                        loginUser
-                )
-        )
-                .isInstanceOf(BusinessException.class)
-                .satisfies(exception -> {
-                    BusinessException businessException =
-                            (BusinessException) exception;
+        // when
+        BusinessException exception =
+                catchThrowableOfType(
+                        () -> wireframeService
+                                .regenerateWireframe(
+                                        projectId,
+                                        screenId,
+                                        "수정 요청"
+                                ),
+                        BusinessException.class
+                );
 
-                    assertThat(
-                            businessException.getErrorCode()
-                    ).isEqualTo(
-                            ErrorCode.SCREEN_NOT_FOUND
-                    );
-                });
+        // then
+        assertThat(exception.getErrorCode())
+                .isEqualTo(ErrorCode.SCREEN_NOT_FOUND);
+
+        verifyNoInteractions(
+                wireframeRepository,
+                aiDocumentService
+        );
     }
 
     @Test
-    @DisplayName("화면에 와이어프레임이 없으면 WIREFRAME_NOT_FOUND 예외가 발생한다")
-    void getWireframeNotFound() {
+    @DisplayName(
+            "요청 프로젝트와 화면의 프로젝트가 다르면 재생성할 수 없다"
+    )
+    void screenProjectMismatch() {
         // given
+        Long requestProjectId = 1L;
         Long screenId = 10L;
-        Long projectId = 1L;
-
-        when(firstScreen.getProjectId())
-                .thenReturn(projectId);
 
         when(screenRepository.findById(screenId))
-                .thenReturn(Optional.of(firstScreen));
+                .thenReturn(Optional.of(screen));
+
+        when(screen.getProjectId())
+                .thenReturn(2L);
+
+        // when
+        BusinessException exception =
+                catchThrowableOfType(
+                        () -> wireframeService
+                                .regenerateWireframe(
+                                        requestProjectId,
+                                        screenId,
+                                        "수정 요청"
+                                ),
+                        BusinessException.class
+                );
+
+        // then
+        assertThat(exception.getErrorCode())
+                .isEqualTo(ErrorCode.SCREEN_NOT_FOUND);
+
+        verifyNoInteractions(
+                wireframeRepository,
+                aiDocumentService
+        );
+    }
+
+    @Test
+    @DisplayName(
+            "기존 와이어프레임이 없으면 재생성할 수 없다"
+    )
+    void wireframeNotFound() {
+        // given
+        Long projectId = 1L;
+        Long screenId = 10L;
+
+        when(screenRepository.findById(screenId))
+                .thenReturn(Optional.of(screen));
+
+        when(screen.getProjectId())
+                .thenReturn(projectId);
 
         when(wireframeRepository.findByScreenId(screenId))
                 .thenReturn(Optional.empty());
 
-        // when & then
-        assertThatThrownBy(() ->
-                wireframeService.getWireframe(
-                        screenId,
-                        loginUser
-                )
-        )
-                .isInstanceOf(BusinessException.class)
-                .satisfies(exception -> {
-                    BusinessException businessException =
-                            (BusinessException) exception;
-
-                    assertThat(
-                            businessException.getErrorCode()
-                    ).isEqualTo(
-                            ErrorCode.WIREFRAME_NOT_FOUND
-                    );
-                });
-
-        verify(projectPermissionService)
-                .validateProjectMember(
-                        projectId,
-                        loginUser.userId()
+        // when
+        BusinessException exception =
+                catchThrowableOfType(
+                        () -> wireframeService
+                                .regenerateWireframe(
+                                        projectId,
+                                        screenId,
+                                        "수정 요청"
+                                ),
+                        BusinessException.class
                 );
+
+        // then
+        assertThat(exception.getErrorCode())
+                .isEqualTo(
+                        ErrorCode.WIREFRAME_NOT_FOUND
+                );
+
+        verifyNoInteractions(aiDocumentService);
     }
 
-    private WireframeContent createWireframeContent(
-            String elementId
-    ) throws Exception {
-        return objectMapper.readValue(
-                validWireframeJson(elementId),
-                WireframeContent.class
+    @Test
+    @DisplayName(
+            "AI 재생성 실패 시 기존 와이어프레임은 변경되지 않는다"
+    )
+    void aiFailureDoesNotChangeWireframe() {
+        // given
+        Long projectId = 1L;
+        Long screenId = 10L;
+
+        String screenSpecJson =
+                "{\"name\":\"로그인 화면\"}";
+
+        String reason =
+                "버튼 위치를 변경해주세요.";
+
+        String oldJsonDsl =
+                "{\"type\":\"screen\",\"width\":375,"
+                        + "\"height\":812,\"elements\":[]}";
+
+        Wireframe wireframe =
+                new Wireframe(
+                        projectId,
+                        screenId,
+                        oldJsonDsl
+                );
+
+        when(screenRepository.findById(screenId))
+                .thenReturn(Optional.of(screen));
+
+        when(screen.getProjectId())
+                .thenReturn(projectId);
+
+        when(screen.getSpecJson())
+                .thenReturn(screenSpecJson);
+
+        when(wireframeRepository.findByScreenId(screenId))
+                .thenReturn(Optional.of(wireframe));
+
+        when(aiDocumentService.regenerateWireframe(
+                screenSpecJson,
+                reason
+        )).thenThrow(
+                new BusinessException(
+                        ErrorCode.AI_RESPONSE_INVALID
+                )
         );
+
+        // when
+        BusinessException exception =
+                catchThrowableOfType(
+                        () -> wireframeService
+                                .regenerateWireframe(
+                                        projectId,
+                                        screenId,
+                                        reason
+                                ),
+                        BusinessException.class
+                );
+
+        // then
+        assertThat(exception.getErrorCode())
+                .isEqualTo(
+                        ErrorCode.AI_RESPONSE_INVALID
+                );
+
+        assertThat(wireframe.getVersion())
+                .isEqualTo(1);
+
+        assertThat(wireframe.getJsonDsl())
+                .isEqualTo(oldJsonDsl);
     }
 
-    private String validWireframeJson(
-            String elementId
-    ) {
-        return """
-                {
-                  "type": "screen",
-                  "width": 375,
-                  "height": 812,
-                  "elements": [
-                    {
-                      "id": "%s",
-                      "type": "text",
-                      "text": "화면 제목",
-                      "x": 20,
-                      "y": 20,
-                      "w": 200,
-                      "h": 40
-                    }
-                  ]
-                }
-                """.formatted(elementId);
+    private void mockGeneratedContent() {
+        when(generatedContent.getType())
+                .thenReturn("screen");
+
+        when(generatedContent.getWidth())
+                .thenReturn(375);
+
+        when(generatedContent.getHeight())
+                .thenReturn(812);
+
+        when(generatedContent.getElements())
+                .thenReturn(List.of(generatedElement));
+
+        when(generatedElement.getId())
+                .thenReturn("login-button");
+
+        when(generatedElement.getType())
+                .thenReturn("button");
+
+        when(generatedElement.getText())
+                .thenReturn("로그인");
+
+        when(generatedElement.getX())
+                .thenReturn(24);
+
+        when(generatedElement.getY())
+                .thenReturn(700);
+
+        when(generatedElement.getW())
+                .thenReturn(327);
+
+        when(generatedElement.getH())
+                .thenReturn(48);
     }
 }

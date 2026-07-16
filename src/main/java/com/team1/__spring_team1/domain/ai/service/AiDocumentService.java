@@ -91,6 +91,15 @@ public class AiDocumentService {
      */
     public WireframeContent generateWireframe(String screenSpecJson) {
         String prompt = wireframePromptBuilder.build(screenSpecJson);
+        return generateWireframe(prompt);
+    }
+
+    public WireframeContent regenerateWireframe(String screenSpecJson, String reason) {
+        String prompt = wireframePromptBuilder.buildForRegeneration(screenSpecJson, reason);
+        return generateWireframeFromPrompt(prompt);
+    }
+
+    private WireframeContent generateWireframeFromPrompt(String prompt) {
         String json = aiDocumentClient.generate(prompt, StageType.WIREFRAME);
         WireframeContent content = parse(json, WireframeContent.class);
         validateWireframe(content, json);
