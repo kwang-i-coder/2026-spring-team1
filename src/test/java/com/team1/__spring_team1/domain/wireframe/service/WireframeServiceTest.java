@@ -426,7 +426,7 @@ class WireframeServiceTest {
 
         doThrow(
                 new BusinessException(
-                        ErrorCode.PROJECT_MEMBER_ONLY
+                        ErrorCode.NOT_PROJECT_MEMBER
                 )
         ).when(projectPermissionService)
                 .validateProjectMember(
@@ -449,7 +449,7 @@ class WireframeServiceTest {
         // then
         assertThat(exception.getErrorCode())
                 .isEqualTo(
-                        ErrorCode.PROJECT_MEMBER_ONLY
+                        ErrorCode.NOT_PROJECT_MEMBER
                 );
 
         verifyNoInteractions(
