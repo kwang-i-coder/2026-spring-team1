@@ -9,7 +9,7 @@ import java.util.List;
 public interface WireframeRegenerationRequestRepository
         extends JpaRepository<WireframeRegenerationRequest, Long> {
 
-    List<WireframeRegenerationRequest> findAllByProjectId(Long projectId);
+    List<WireframeRegenerationRequest> findAllByProjectIdOrderByCreatedAtDesc(Long projectId);
 
     boolean existsByScreenIdAndStatus(
             Long screenId,
