@@ -2,6 +2,8 @@ package com.team1.__spring_team1.global.stt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team1.__spring_team1.domain.meeting.dto.TranscribeResultResponse;
+import com.team1.__spring_team1.global.exception.BusinessException;
+import com.team1.__spring_team1.global.exception.ErrorCode;
 import com.team1.__spring_team1.global.s3.S3Directory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,6 +18,8 @@ import software.amazon.awssdk.services.transcribe.model.TranscriptionJob;
 import software.amazon.awssdk.services.transcribe.model.TranscriptionJobStatus;
 
 import java.io.IOException;
+
+import static com.team1.__spring_team1.global.exception.ErrorCode.STT_FAILED;
 
 @Component
 @RequiredArgsConstructor
@@ -60,7 +64,7 @@ public class TranscribeStatusChecker {
             TranscribeResultResponse result = objectMapper.readValue(response, TranscribeResultResponse.class);
             return result.extractTranscript();
         } catch (IOException e) {
-            throw new RuntimeException("STT 결과 파일 읽기 실패", e);
+            throw new BusinessException(ErrorCode.STT_FAILED);
         }
     }
 }
