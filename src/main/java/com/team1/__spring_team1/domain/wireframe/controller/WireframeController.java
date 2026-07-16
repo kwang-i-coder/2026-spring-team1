@@ -5,6 +5,7 @@ import com.team1.__spring_team1.domain.wireframe.dto.request.WireframeRegenerati
 import com.team1.__spring_team1.domain.wireframe.dto.response.ScreenWireframeResponse;
 import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeDslResponse;
 import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeRegenerationCreateResponse;
+import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeRegenerationListResponse;
 import com.team1.__spring_team1.domain.wireframe.service.WireframeRegenerationService;
 import com.team1.__spring_team1.domain.wireframe.service.WireframeService;
 import com.team1.__spring_team1.global.response.ApiResponse;
@@ -49,5 +50,12 @@ public class WireframeController {
     public ApiResponse<WireframeRegenerationCreateResponse>
     createRegenerationRequest(@PathVariable Long screenId, @Valid @RequestBody WireframeRegenerationCreateRequest request, @CurrentUser LoginUser loginUser) {
         return ApiResponse.success(wireframeRegenerationService.createRegenerationRequest(screenId, request, loginUser));
+    }
+
+    // 와이어프레임 재생성 요청 목록 조회
+    @GetMapping("/projects/{projectId}/wireframe/regeneration-requests")
+    public ApiResponse<WireframeRegenerationListResponse>
+    getRegenerationRequests(@PathVariable Long projectId, @CurrentUser LoginUser loginUser) {
+        return ApiResponse.success(wireframeRegenerationService.getRegenerationRequests(projectId, loginUser));
     }
 }

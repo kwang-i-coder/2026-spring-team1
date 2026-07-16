@@ -3,8 +3,12 @@ package com.team1.__spring_team1.domain.wireframe.service;
 import com.team1.__spring_team1.domain.project.service.ProjectPermissionService;
 import com.team1.__spring_team1.domain.stage.entity.Screen;
 import com.team1.__spring_team1.domain.stage.repository.ScreenRepository;
+import com.team1.__spring_team1.domain.user.entity.User;
+import com.team1.__spring_team1.domain.user.repository.UserRepository;
 import com.team1.__spring_team1.domain.wireframe.dto.request.WireframeRegenerationCreateRequest;
 import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeRegenerationCreateResponse;
+import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeRegenerationListResponse;
+import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeRegenerationResponse;
 import com.team1.__spring_team1.domain.wireframe.entity.WireframeRegenerationRequest;
 import com.team1.__spring_team1.domain.wireframe.entity.WireframeRegenerationRequestStatus;
 import com.team1.__spring_team1.domain.wireframe.repository.WireframeRegenerationRequestRepository;
@@ -21,10 +25,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -49,7 +57,13 @@ class WireframeRegenerationServiceTest {
     private ProjectPermissionService projectPermissionService;
 
     @Mock
+    private UserRepository userRepository;
+
+    @Mock
     private Screen screen;
+
+    @Mock
+    private User requester;
 
     private WireframeRegenerationService
             regenerationService;
@@ -63,7 +77,8 @@ class WireframeRegenerationServiceTest {
                         screenRepository,
                         wireframeRepository,
                         regenerationRequestRepository,
-                        projectPermissionService
+                        projectPermissionService,
+                        userRepository
                 );
 
         loginUser = new LoginUser(
@@ -114,9 +129,7 @@ class WireframeRegenerationServiceTest {
             return savedRequest;
         }).when(regenerationRequestRepository)
                 .save(
-                        org.mockito.ArgumentMatchers.any(
-                                WireframeRegenerationRequest.class
-                        )
+                        any(WireframeRegenerationRequest.class)
                 );
 
         // when
@@ -214,7 +227,8 @@ class WireframeRegenerationServiceTest {
         verifyNoInteractions(
                 projectPermissionService,
                 wireframeRepository,
-                regenerationRequestRepository
+                regenerationRequestRepository,
+                userRepository
         );
     }
 
@@ -266,7 +280,8 @@ class WireframeRegenerationServiceTest {
                 );
 
         verifyNoInteractions(
-                regenerationRequestRepository
+                regenerationRequestRepository,
+                userRepository
         );
     }
 
@@ -320,10 +335,10 @@ class WireframeRegenerationServiceTest {
 
         verify(regenerationRequestRepository, never())
                 .save(
-                        org.mockito.ArgumentMatchers.any(
-                                WireframeRegenerationRequest.class
-                        )
+                        any(WireframeRegenerationRequest.class)
                 );
+
+        verifyNoInteractions(userRepository);
     }
 
     @Test
@@ -376,7 +391,200 @@ class WireframeRegenerationServiceTest {
 
         verifyNoInteractions(
                 wireframeRepository,
-                regenerationRequestRepository
+                regenerationRequestRepository,
+                userRepository
+        );
+    }
+
+    @Test
+    @DisplayName("프로젝트 리더가 재생성 요청 목록을 조회한다")
+    void getRegenerationRequests() {
+        // given
+        Long projectId = 1L;
+        Long screenId = 10L;
+        Long requesterId = 200L;
+
+        LocalDateTime createdAt =
+                LocalDateTime.of(
+                        2026,
+                        7,
+                        16,
+                        15,
+                        30
+                );
+
+        WireframeRegenerationRequest regenerationRequest =
+                new WireframeRegenerationRequest(
+                        projectId,
+                        screenId,
+                        requesterId,
+                        "버튼 위치를 수정해주세요."
+                );
+
+        ReflectionTestUtils.setField(
+                regenerationRequest,
+                "id",
+                500L
+        );
+
+        ReflectionTestUtils.setField(
+                regenerationRequest,
+                "createdAt",
+                createdAt
+        );
+
+        when(regenerationRequestRepository
+                .findAllByProjectIdOrderByCreatedAtDesc(
+                        projectId
+                ))
+                .thenReturn(
+                        List.of(regenerationRequest)
+                );
+
+        when(screenRepository.findAllById(
+                Set.of(screenId)
+        )).thenReturn(
+                List.of(screen)
+        );
+
+        when(screen.getId())
+                .thenReturn(screenId);
+
+        when(screen.getName())
+                .thenReturn("로그인 화면");
+
+        when(userRepository.findByIdIn(
+                Set.of(requesterId)
+        )).thenReturn(
+                List.of(requester)
+        );
+
+        when(requester.getId())
+                .thenReturn(requesterId);
+
+        when(requester.getName())
+                .thenReturn("요청자");
+
+        // when
+        WireframeRegenerationListResponse response =
+                regenerationService.getRegenerationRequests(
+                        projectId,
+                        loginUser
+                );
+
+        // then
+        assertThat(response.requests())
+                .hasSize(1);
+
+        WireframeRegenerationResponse result =
+                response.requests().get(0);
+
+        assertThat(result.requestId())
+                .isEqualTo(500L);
+
+        assertThat(result.screenId())
+                .isEqualTo(screenId);
+
+        assertThat(result.screenName())
+                .isEqualTo("로그인 화면");
+
+        assertThat(result.requestedBy().userId())
+                .isEqualTo(requesterId);
+
+        assertThat(result.requestedBy().name())
+                .isEqualTo("요청자");
+
+        assertThat(result.reason())
+                .isEqualTo("버튼 위치를 수정해주세요.");
+
+        assertThat(result.status())
+                .isEqualTo("PENDING");
+
+        assertThat(result.createdAt())
+                .isEqualTo(createdAt);
+
+        verify(projectPermissionService)
+                .validateProjectLeader(
+                        projectId,
+                        loginUser.userId()
+                );
+    }
+
+    @Test
+    @DisplayName("재생성 요청이 없으면 빈 목록을 반환한다")
+    void getRegenerationRequestsEmpty() {
+        // given
+        Long projectId = 1L;
+
+        when(regenerationRequestRepository
+                .findAllByProjectIdOrderByCreatedAtDesc(
+                        projectId
+                ))
+                .thenReturn(List.of());
+
+        // when
+        WireframeRegenerationListResponse response =
+                regenerationService.getRegenerationRequests(
+                        projectId,
+                        loginUser
+                );
+
+        // then
+        assertThat(response.requests())
+                .isEmpty();
+
+        verify(projectPermissionService)
+                .validateProjectLeader(
+                        projectId,
+                        loginUser.userId()
+                );
+
+        verifyNoInteractions(
+                screenRepository,
+                userRepository
+        );
+    }
+
+    @Test
+    @DisplayName("프로젝트 리더가 아니면 재생성 요청 목록을 조회할 수 없다")
+    void getRegenerationRequestsNotProjectLeader() {
+        // given
+        Long projectId = 1L;
+
+        doThrow(
+                new BusinessException(
+                        ErrorCode.PROJECT_LEADER_ONLY
+                )
+        ).when(projectPermissionService)
+                .validateProjectLeader(
+                        projectId,
+                        loginUser.userId()
+                );
+
+        // when & then
+        assertThatThrownBy(() ->
+                regenerationService.getRegenerationRequests(
+                        projectId,
+                        loginUser
+                )
+        )
+                .isInstanceOf(BusinessException.class)
+                .satisfies(exception -> {
+                    BusinessException businessException =
+                            (BusinessException) exception;
+
+                    assertThat(
+                            businessException.getErrorCode()
+                    ).isEqualTo(
+                            ErrorCode.PROJECT_LEADER_ONLY
+                    );
+                });
+
+        verifyNoInteractions(
+                screenRepository,
+                wireframeRepository,
+                regenerationRequestRepository,
+                userRepository
         );
     }
 }
