@@ -1,6 +1,6 @@
 package com.team1.__spring_team1.global.config;
 
-import com.team1.__spring_team1.global.security.MockAuthFilter;
+import com.team1.__spring_team1.global.security.SessionAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,7 +12,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final MockAuthFilter mockAuthFilter;
+    private final SessionAuthFilter sessionAuthFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -23,11 +23,16 @@ public class SecurityConfig {
                                 "/actuator/health",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                "/auth/signup",
+                                "/auth/login"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(mockAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(
+                        sessionAuthFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                )
                 .build();
     }
 }
