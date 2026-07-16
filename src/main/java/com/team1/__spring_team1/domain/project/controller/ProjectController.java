@@ -83,7 +83,7 @@ public class ProjectController {
     @PostMapping("/join")
     public ApiResponse<ProjectJoinResponse> joinProject(
             @Parameter(hidden = true) @CurrentUser LoginUser loginUser,
-            @RequestBody ProjectJoinRequest request
+            @Valid @RequestBody ProjectJoinRequest request
     ) {
         return ApiResponse.success(
                 projectService.joinProject(loginUser.userId(), request)
