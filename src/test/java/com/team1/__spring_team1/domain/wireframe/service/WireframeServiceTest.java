@@ -29,7 +29,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class WireframeServiceRegenerationTest {
+class WireframeServiceTest {
 
     @Mock
     private WireframeRepository wireframeRepository;
