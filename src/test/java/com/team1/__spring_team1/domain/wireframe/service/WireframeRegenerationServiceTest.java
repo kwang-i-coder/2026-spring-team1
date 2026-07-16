@@ -8,6 +8,7 @@ import com.team1.__spring_team1.domain.user.repository.UserRepository;
 import com.team1.__spring_team1.domain.wireframe.dto.request.WireframeRegenerationCreateRequest;
 import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeRegenerationCreateResponse;
 import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeRegenerationListResponse;
+import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeRegenerationRejectResponse;
 import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeRegenerationResponse;
 import com.team1.__spring_team1.domain.wireframe.entity.WireframeRegenerationRequest;
 import com.team1.__spring_team1.domain.wireframe.entity.WireframeRegenerationRequestStatus;
@@ -586,5 +587,234 @@ class WireframeRegenerationServiceTest {
                 regenerationRequestRepository,
                 userRepository
         );
+    }
+
+    @Test
+    @DisplayName("프로젝트 리더가 재생성 요청을 거절한다")
+    void rejectRegenerationRequest() {
+        // given
+        Long requestId = 500L;
+        Long projectId = 1L;
+        Long screenId = 10L;
+
+        WireframeRegenerationRequest regenerationRequest =
+                new WireframeRegenerationRequest(
+                        projectId,
+                        screenId,
+                        200L,
+                        "버튼 위치를 수정해주세요."
+                );
+
+        ReflectionTestUtils.setField(
+                regenerationRequest,
+                "id",
+                requestId
+        );
+
+        when(regenerationRequestRepository.findById(requestId))
+                .thenReturn(Optional.of(regenerationRequest));
+
+        // when
+        WireframeRegenerationRejectResponse response =
+                regenerationService.rejectRegenerationRequest(
+                        requestId,
+                        loginUser
+                );
+
+        // then
+        assertThat(response.requestId())
+                .isEqualTo(requestId);
+
+        assertThat(response.status())
+                .isEqualTo("REJECTED");
+
+        assertThat(response.message())
+                .isEqualTo(
+                        "와이어프레임 재생성 요청이 거절되었습니다."
+                );
+
+        assertThat(regenerationRequest.getStatus())
+                .isEqualTo(
+                        WireframeRegenerationRequestStatus.REJECTED
+                );
+
+        assertThat(regenerationRequest.getReviewerId())
+                .isEqualTo(loginUser.userId());
+
+        assertThat(regenerationRequest.getReviewedAt())
+                .isNotNull();
+
+        verify(projectPermissionService)
+                .validateProjectLeader(
+                        projectId,
+                        loginUser.userId()
+                );
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 재생성 요청은 거절할 수 없다")
+    void rejectRegenerationRequestNotFound() {
+        // given
+        Long requestId = 999L;
+
+        when(regenerationRequestRepository.findById(requestId))
+                .thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() ->
+                regenerationService.rejectRegenerationRequest(
+                        requestId,
+                        loginUser
+                )
+        )
+                .isInstanceOf(BusinessException.class)
+                .satisfies(exception -> {
+                    BusinessException businessException =
+                            (BusinessException) exception;
+
+                    assertThat(
+                            businessException.getErrorCode()
+                    ).isEqualTo(
+                            ErrorCode.REGENERATION_REQUEST_NOT_FOUND
+                    );
+                });
+
+        verifyNoInteractions(
+                projectPermissionService,
+                screenRepository,
+                wireframeRepository,
+                userRepository
+        );
+    }
+
+    @Test
+    @DisplayName("프로젝트 리더가 아니면 재생성 요청을 거절할 수 없다")
+    void rejectRegenerationRequestNotProjectLeader() {
+        // given
+        Long requestId = 500L;
+        Long projectId = 1L;
+
+        WireframeRegenerationRequest regenerationRequest =
+                new WireframeRegenerationRequest(
+                        projectId,
+                        10L,
+                        200L,
+                        "수정해주세요."
+                );
+
+        ReflectionTestUtils.setField(
+                regenerationRequest,
+                "id",
+                requestId
+        );
+
+        when(regenerationRequestRepository.findById(requestId))
+                .thenReturn(Optional.of(regenerationRequest));
+
+        doThrow(
+                new BusinessException(
+                        ErrorCode.PROJECT_LEADER_ONLY
+                )
+        ).when(projectPermissionService)
+                .validateProjectLeader(
+                        projectId,
+                        loginUser.userId()
+                );
+
+        // when & then
+        assertThatThrownBy(() ->
+                regenerationService.rejectRegenerationRequest(
+                        requestId,
+                        loginUser
+                )
+        )
+                .isInstanceOf(BusinessException.class)
+                .satisfies(exception -> {
+                    BusinessException businessException =
+                            (BusinessException) exception;
+
+                    assertThat(
+                            businessException.getErrorCode()
+                    ).isEqualTo(
+                            ErrorCode.PROJECT_LEADER_ONLY
+                    );
+                });
+
+        assertThat(regenerationRequest.getStatus())
+                .isEqualTo(
+                        WireframeRegenerationRequestStatus.PENDING
+                );
+
+        assertThat(regenerationRequest.getReviewerId())
+                .isNull();
+
+        assertThat(regenerationRequest.getReviewedAt())
+                .isNull();
+
+        verifyNoInteractions(
+                screenRepository,
+                wireframeRepository,
+                userRepository
+        );
+    }
+
+    @Test
+    @DisplayName("이미 처리된 재생성 요청은 다시 거절할 수 없다")
+    void rejectRegenerationRequestAlreadyHandled() {
+        // given
+        Long requestId = 500L;
+        Long projectId = 1L;
+
+        WireframeRegenerationRequest regenerationRequest =
+                new WireframeRegenerationRequest(
+                        projectId,
+                        10L,
+                        200L,
+                        "수정해주세요."
+                );
+
+        ReflectionTestUtils.setField(
+                regenerationRequest,
+                "id",
+                requestId
+        );
+
+        regenerationRequest.reject(999L);
+
+        when(regenerationRequestRepository.findById(requestId))
+                .thenReturn(Optional.of(regenerationRequest));
+
+        // when & then
+        assertThatThrownBy(() ->
+                regenerationService.rejectRegenerationRequest(
+                        requestId,
+                        loginUser
+                )
+        )
+                .isInstanceOf(BusinessException.class)
+                .satisfies(exception -> {
+                    BusinessException businessException =
+                            (BusinessException) exception;
+
+                    assertThat(
+                            businessException.getErrorCode()
+                    ).isEqualTo(
+                            ErrorCode.REGENERATION_REQUEST_ALREADY_HANDLED
+                    );
+                });
+
+        assertThat(regenerationRequest.getStatus())
+                .isEqualTo(
+                        WireframeRegenerationRequestStatus.REJECTED
+                );
+
+        assertThat(regenerationRequest.getReviewerId())
+                .isEqualTo(999L);
+
+        verify(projectPermissionService)
+                .validateProjectLeader(
+                        projectId,
+                        loginUser.userId()
+                );
     }
 }

@@ -6,10 +6,7 @@ import com.team1.__spring_team1.domain.stage.repository.ScreenRepository;
 import com.team1.__spring_team1.domain.user.entity.User;
 import com.team1.__spring_team1.domain.user.repository.UserRepository;
 import com.team1.__spring_team1.domain.wireframe.dto.request.WireframeRegenerationCreateRequest;
-import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeRegenerationCreateResponse;
-import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeRegenerationListResponse;
-import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeRegenerationRequesterResponse;
-import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeRegenerationResponse;
+import com.team1.__spring_team1.domain.wireframe.dto.response.*;
 import com.team1.__spring_team1.domain.wireframe.entity.WireframeRegenerationRequest;
 import com.team1.__spring_team1.domain.wireframe.entity.WireframeRegenerationRequestStatus;
 import com.team1.__spring_team1.domain.wireframe.repository.WireframeRegenerationRequestRepository;
@@ -78,6 +75,19 @@ public class WireframeRegenerationService {
 
         return new WireframeRegenerationListResponse(responses);
     }
+
+    // 와이어프레임 재생성 요청 거절
+    @Transactional
+    public WireframeRegenerationRejectResponse rejectRegenerationRequest(Long requestId, LoginUser loginUser) {
+        WireframeRegenerationRequest regenerationRequest = wireframeRegenerationRequestRepository.findById(requestId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.REGENERATION_REQUEST_NOT_FOUND));
+
+        projectPermissionService.validateProjectLeader(regenerationRequest.getProjectId(), loginUser.userId());
+
+        regenerationRequest.reject(loginUser.userId());
+        return new WireframeRegenerationRejectResponse(regenerationRequest.getId(), regenerationRequest.getStatus().name(), "와이어프레임 재생성 요청이 거절되었습니다.");
+    }
+
     private WireframeRegenerationResponse toRegenerationResponse(WireframeRegenerationRequest request, Map<Long, Screen> screenMap, Map<Long, User> requesterMap) {
         Screen screen = screenMap.get(request.getScreenId());
         if (screen == null) {
