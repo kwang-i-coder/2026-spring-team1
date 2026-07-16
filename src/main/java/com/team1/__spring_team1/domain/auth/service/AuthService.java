@@ -99,4 +99,18 @@ public class AuthService {
         return HexFormat.of().formatHex(randomBytes);
     }
 
+    @Transactional
+    public void logout(String sessionToken) {
+        String sessionTokenHash = TokenHashUtil.hash(sessionToken);
+
+        Session session = sessionRepository.findBySessionTokenHash(sessionTokenHash)
+            .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+
+        if (!session.isValid()) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
+        session.revoke();
+    }
+
 }
