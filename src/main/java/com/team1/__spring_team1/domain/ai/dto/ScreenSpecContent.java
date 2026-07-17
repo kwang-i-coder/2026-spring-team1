@@ -25,7 +25,7 @@ public class ScreenSpecContent {
         private Integer screenId;
         private String name;
         private String purpose;
-        private List<Component> componenets;
+        private List<Component> components;
         private List<Input> inputs;
         private List<Button> buttons;
         private List<Navigation> navigation;
