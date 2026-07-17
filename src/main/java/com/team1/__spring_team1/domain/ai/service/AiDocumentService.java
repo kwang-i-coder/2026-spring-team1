@@ -6,15 +6,20 @@ import com.team1.__spring_team1.domain.ai.client.AiDocumentClient;
 import com.team1.__spring_team1.domain.ai.dto.FeatureSpecContent;
 import com.team1.__spring_team1.domain.ai.dto.PlanContent;
 import com.team1.__spring_team1.domain.ai.dto.ScreenSpecContent;
+import com.team1.__spring_team1.domain.ai.dto.WireframeContent;
 import com.team1.__spring_team1.domain.ai.prompt.FeatureSpecPromptBuilder;
 import com.team1.__spring_team1.domain.ai.prompt.PlanPromptBuilder;
 import com.team1.__spring_team1.domain.ai.prompt.ScreenSpecPromptBuilder;
+import com.team1.__spring_team1.domain.ai.prompt.WireframePromptBuilder;
 import com.team1.__spring_team1.domain.stage.entity.StageType;
 import com.team1.__spring_team1.global.exception.BusinessException;
 import com.team1.__spring_team1.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * AI 문서 생성 오케스트레이션 서비스.
@@ -36,6 +41,7 @@ public class AiDocumentService {
     private final PlanPromptBuilder planPromptBuilder;
     private final FeatureSpecPromptBuilder featureSpecPromptBuilder;
     private final ScreenSpecPromptBuilder screenSpecPromptBuilder;
+    private final WireframePromptBuilder wireframePromptBuilder;
     private final ObjectMapper objectMapper;
 
     /**
@@ -72,6 +78,88 @@ public class AiDocumentService {
         String prompt = screenSpecPromptBuilder.build(featureSpecContent);
         String json = aiDocumentClient.generate(prompt, StageType.SCREEN_SPEC);
         return parse(json, ScreenSpecContent.class);
+    }
+
+    /**
+     * 확정된 화면별 기획서의 화면 하나로 WIREFRAME(와이어프레임) 생성.
+     *
+     * 앞 단계들과 달리 화면 단위로 호출되며, 화면끼리 서로 의존하지 않는다.
+     * 결과는 stage_documents가 아니라 wireframe 테이블에 저장된다.
+     *
+     * @param screenSpecJson 확정된 Screen 엔티티의 spec_json
+     * @return 파싱 및 검증을 통과한 WireframeContent 객체
+     */
+    public WireframeContent generateWireframe(String screenSpecJson) {
+        String prompt = wireframePromptBuilder.build(screenSpecJson);
+        return generateWireframe(prompt);
+    }
+
+    public WireframeContent regenerateWireframe(String screenSpecJson, String reason) {
+        String prompt = wireframePromptBuilder.buildForRegeneration(screenSpecJson, reason);
+        return generateWireframeFromPrompt(prompt);
+    }
+
+    private WireframeContent generateWireframeFromPrompt(String prompt) {
+        String json = aiDocumentClient.generate(prompt, StageType.WIREFRAME);
+        WireframeContent content = parse(json, WireframeContent.class);
+        validateWireframe(content, json);
+        return content;
+    }
+
+    /**
+     * 와이어프레임 DSL의 유효성을 검증한다.
+     *
+     * Gemini 요청에 JSON Schema를 넘기지 않기 때문에 파싱에 성공해도
+     * 값 자체가 렌더링 불가능한 경우가 있다. 잘못된 DSL이 DB에 저장되면
+     * 조회 시점에야 문제가 드러나므로 저장 전에 걸러낸다.
+     */
+    private void validateWireframe(WireframeContent content, String json) {
+        if (isBlank(content.getType())
+                || isNotPositive(content.getWidth())
+                || isNotPositive(content.getHeight())
+                || content.getElements() == null
+                || content.getElements().isEmpty()) {
+            throw invalidWireframe("canvas 정보가 올바르지 않습니다", json);
+        }
+
+        Set<String> ids = new HashSet<>();
+        for (WireframeContent.Element element : content.getElements()) {
+            if (isInvalidElement(element, content) || !ids.add(element.getId())) {
+                throw invalidWireframe("element가 올바르지 않습니다: " + element.getId(), json);
+            }
+        }
+    }
+
+    /**
+     * 요소의 필수 필드와 캔버스 경계를 검사한다.
+     * 좌표/크기가 null이면 AI가 필드를 누락한 것이므로 함께 걸러낸다.
+     */
+    private boolean isInvalidElement(WireframeContent.Element element, WireframeContent content) {
+        if (isBlank(element.getId())
+                || isBlank(element.getType())
+                || element.getX() == null
+                || element.getY() == null
+                || isNotPositive(element.getW())
+                || isNotPositive(element.getH())) {
+            return true;
+        }
+        return element.getX() < 0
+                || element.getY() < 0
+                || element.getX() + element.getW() > content.getWidth()
+                || element.getY() + element.getH() > content.getHeight();
+    }
+
+    private boolean isNotPositive(Integer value) {
+        return value == null || value <= 0;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private BusinessException invalidWireframe(String reason, String json) {
+        log.error("[AiDocumentService] 와이어프레임 응답 검증 실패. reason={}, json={}", reason, json);
+        return new BusinessException(ErrorCode.AI_RESPONSE_INVALID);
     }
 
     /**

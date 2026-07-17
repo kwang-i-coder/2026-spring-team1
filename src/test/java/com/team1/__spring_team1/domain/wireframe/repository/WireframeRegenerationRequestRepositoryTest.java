@@ -40,7 +40,7 @@ class WireframeRegenerationRequestRepositoryTest {
     }
 
     @Test
-    @DisplayName("프로젝트ID로 재생성 요청 목록을 조회")
+    @DisplayName("프로젝트ID로 재생성 요청 목록을 최신순으로 조회")
     void findAllByProjectId() {
         // given
         repository.save(new WireframeRegenerationRequest(1L, 10L, 100L, "첫 번째 재생성 요청"));
@@ -49,7 +49,7 @@ class WireframeRegenerationRequestRepositoryTest {
         repository.flush();
 
         // when
-        List<WireframeRegenerationRequest> requests = repository.findAllByProjectId(1L);
+        List<WireframeRegenerationRequest> requests = repository.findAllByProjectIdOrderByCreatedAtDesc(1L);
 
         // then
         Assertions.assertThat(requests).hasSize(2);

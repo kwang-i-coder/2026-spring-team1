@@ -176,6 +176,10 @@ public class StageService {
 
     @Transactional(readOnly = true)
     public StageDocumentResponse getStageDocument(Long projectId, StageType stageType, LoginUser loginUser) {
+        if (stageType == StageType.WIREFRAME) {
+            throw new BusinessException(ErrorCode.STAGE_TYPE_INVALID);
+        }
+
         // 프로젝트 멤버 권한 검증
         ProjectMember member = getProjectMember(projectId, loginUser.userId());
         if (!member.isMember()) {
