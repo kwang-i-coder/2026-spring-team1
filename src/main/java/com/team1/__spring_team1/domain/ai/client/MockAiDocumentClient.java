@@ -97,6 +97,51 @@ public class MockAiDocumentClient implements AiDocumentClient {
                       ]
                     }
                     """;
+            case WIREFRAME -> """
+                    {
+                      "type": "screen",
+                      "width": 375,
+                      "height": 812,
+                      "elements": [
+                        {
+                          "id": "navbar",
+                          "type": "navbar",
+                          "text": "프로젝트",
+                          "x": 0,
+                          "y": 0,
+                          "w": 375,
+                          "h": 56
+                        },
+                        {
+                          "id": "project-search-input",
+                          "type": "input",
+                          "text": "프로젝트명을 입력하세요",
+                          "x": 16,
+                          "y": 72,
+                          "w": 343,
+                          "h": 44
+                        },
+                        {
+                          "id": "project-list",
+                          "type": "list",
+                          "text": "프로젝트 목록",
+                          "x": 16,
+                          "y": 132,
+                          "w": 343,
+                          "h": 560
+                        },
+                        {
+                          "id": "create-project-button",
+                          "type": "button",
+                          "text": "새 프로젝트",
+                          "x": 16,
+                          "y": 708,
+                          "w": 343,
+                          "h": 48
+                        }
+                      ]
+                    }
+                    """;
         };
     }
 }
