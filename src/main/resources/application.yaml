@@ -10,13 +10,12 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update      # 개발 초기엔 update. 운영선 validate/none 권장
+      ddl-auto: update
     properties:
       hibernate:
         format_sql: true
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
-
 
 server:
   port: 8081
@@ -35,10 +34,10 @@ cloud:
       bucket: ${AWS_S3_BUCKET:team1-meeting-files}
     region:
       static: ${AWS_REGION:ap-northeast-2}
+
 app:
   frontend:
     base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
-
 
 gemini:
   api-key: ${GEMINI_API_KEY}
