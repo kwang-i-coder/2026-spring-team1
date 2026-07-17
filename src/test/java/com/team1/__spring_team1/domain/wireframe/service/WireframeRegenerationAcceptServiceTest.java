@@ -1,6 +1,7 @@
 package com.team1.__spring_team1.domain.wireframe.service;
 
 import com.team1.__spring_team1.domain.project.service.ProjectPermissionService;
+import com.team1.__spring_team1.domain.realtime.handler.ProjectWebSocketHandler;
 import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeDslResponse;
 import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeElementResponse;
 import com.team1.__spring_team1.domain.wireframe.dto.response.WireframeRegenerationAcceptResponse;
@@ -43,6 +44,9 @@ class WireframeRegenerationAcceptServiceTest {
     @Mock
     private WireframeService wireframeService;
 
+    @Mock
+    private ProjectWebSocketHandler projectWebSocketHandler;
+
     private WireframeRegenerationAcceptService
             acceptService;
 
@@ -54,7 +58,8 @@ class WireframeRegenerationAcceptServiceTest {
                 new WireframeRegenerationAcceptService(
                         regenerationRequestRepository,
                         projectPermissionService,
-                        wireframeService
+                        wireframeService,
+                        projectWebSocketHandler
                 );
 
         loginUser = new LoginUser(

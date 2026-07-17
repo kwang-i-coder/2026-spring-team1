@@ -1,6 +1,7 @@
 package com.team1.__spring_team1.domain.wireframe.service;
 
 import com.team1.__spring_team1.domain.project.service.ProjectPermissionService;
+import com.team1.__spring_team1.domain.realtime.handler.ProjectWebSocketHandler;
 import com.team1.__spring_team1.domain.stage.entity.Screen;
 import com.team1.__spring_team1.domain.stage.repository.ScreenRepository;
 import com.team1.__spring_team1.domain.user.entity.User;
@@ -61,6 +62,9 @@ class WireframeRegenerationServiceTest {
     private UserRepository userRepository;
 
     @Mock
+    private ProjectWebSocketHandler projectWebSocketHandler;
+
+    @Mock
     private Screen screen;
 
     @Mock
@@ -79,7 +83,8 @@ class WireframeRegenerationServiceTest {
                         wireframeRepository,
                         regenerationRequestRepository,
                         projectPermissionService,
-                        userRepository
+                        userRepository,
+                        projectWebSocketHandler
                 );
 
         loginUser = new LoginUser(

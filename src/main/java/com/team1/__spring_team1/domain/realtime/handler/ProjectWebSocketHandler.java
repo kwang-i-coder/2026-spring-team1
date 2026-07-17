@@ -34,7 +34,7 @@ public class ProjectWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         Long projectId = extractProjectId(session);
-        Long userId = extractUserId(session);
+        Long userId = getUserId(session);
 
         session.getAttributes().put(PROJECT_ID_ATTRIBUTE, projectId);
         session.getAttributes().put(USER_ID_ATTRIBUTE, userId);
@@ -60,6 +60,11 @@ public class ProjectWebSocketHandler extends TextWebSocketHandler {
 
         RealtimeEventMessage receivedMessage =
                 objectMapper.readValue(message.getPayload(), RealtimeEventMessage.class);
+
+        if (receivedMessage.type() != RealtimeEventType.DOCUMENT_UPDATE) {
+            session.close(CloseStatus.POLICY_VIOLATION);
+            return;
+        }
 
         RealtimeEventMessage broadcastMessage = RealtimeEventMessage.of(
                 receivedMessage.type(),
@@ -154,30 +159,6 @@ public class ProjectWebSocketHandler extends TextWebSocketHandler {
         } catch (NumberFormatException e) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
-    }
-
-    private Long extractUserId(WebSocketSession session) {
-        URI uri = session.getUri();
-
-        if (uri == null || uri.getQuery() == null) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT);
-        }
-
-        String[] queryParams = uri.getQuery().split("&");
-
-        for (String queryParam : queryParams) {
-            String[] keyValue = queryParam.split("=");
-
-            if (keyValue.length == 2 && keyValue[0].equals("userId")) {
-                try {
-                    return Long.parseLong(keyValue[1]);
-                } catch (NumberFormatException e) {
-                    throw new BusinessException(ErrorCode.INVALID_INPUT);
-                }
-            }
-        }
-
-        throw new BusinessException(ErrorCode.INVALID_INPUT);
     }
 
     private Long getProjectId(WebSocketSession session) {

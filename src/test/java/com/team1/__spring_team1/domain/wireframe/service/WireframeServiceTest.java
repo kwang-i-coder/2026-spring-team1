@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team1.__spring_team1.domain.ai.dto.WireframeContent;
 import com.team1.__spring_team1.domain.ai.service.AiDocumentService;
 import com.team1.__spring_team1.domain.project.service.ProjectPermissionService;
+import com.team1.__spring_team1.domain.realtime.handler.ProjectWebSocketHandler;
 import com.team1.__spring_team1.domain.stage.entity.Screen;
 import com.team1.__spring_team1.domain.stage.entity.StageDocument;
 import com.team1.__spring_team1.domain.stage.repository.ScreenRepository;
@@ -57,6 +58,9 @@ class WireframeServiceTest {
     private AiDocumentService aiDocumentService;
 
     @Mock
+    private ProjectWebSocketHandler projectWebSocketHandler;
+
+    @Mock
     private StageDocument confirmedScreenSpec;
 
     private WireframeService wireframeService;
@@ -75,7 +79,8 @@ class WireframeServiceTest {
                 stageService,
                 projectPermissionService,
                 aiDocumentService,
-                objectMapper
+                objectMapper,
+                projectWebSocketHandler
         );
 
         loginUser = new LoginUser(

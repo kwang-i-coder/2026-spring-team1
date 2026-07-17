@@ -24,6 +24,8 @@ import com.team1.__spring_team1.domain.stage.repository.ScreenRepository;
 import com.team1.__spring_team1.domain.stage.repository.StageDocumentRepository;
 import com.team1.__spring_team1.domain.project.entity.ProjectMember;
 import com.team1.__spring_team1.domain.project.repository.ProjectMemberRepository;
+import com.team1.__spring_team1.domain.realtime.dto.RealtimeEventType;
+import com.team1.__spring_team1.domain.realtime.handler.ProjectWebSocketHandler;
 import com.team1.__spring_team1.global.exception.BusinessException;
 import com.team1.__spring_team1.global.exception.ErrorCode;
 import com.team1.__spring_team1.global.security.LoginUser;
@@ -32,7 +34,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 
 @Slf4j
@@ -47,6 +51,7 @@ public class StageService {
     private final MeetingFileRepository meetingFileRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final ObjectMapper objectMapper;
+    private final ProjectWebSocketHandler projectWebSocketHandler;
 
     // ─────────────────────────────────────────
     // 1단계: PLAN 생성
@@ -82,6 +87,16 @@ public class StageService {
                 loginUser.userId()
         );
         stageDocumentRepository.save(document);
+
+        publishEvent(
+                projectId,
+                RealtimeEventType.AI_GENERATION_COMPLETED,
+                loginUser.userId(),
+                Map.of(
+                        "stage", StageType.PLAN.name(),
+                        "documentId", document.getId()
+                )
+        );
 
         return StageDocumentResponse.of(document, objectMapper);
     }
@@ -127,6 +142,16 @@ public class StageService {
         );
         stageDocumentRepository.save(document);
 
+        publishEvent(
+                projectId,
+                RealtimeEventType.AI_GENERATION_COMPLETED,
+                loginUser.userId(),
+                Map.of(
+                        "stage", StageType.FEATURE_SPEC.name(),
+                        "documentId", document.getId()
+                )
+        );
+
         return StageDocumentResponse.of(document, objectMapper);
     }
 
@@ -166,6 +191,16 @@ public class StageService {
                 loginUser.userId()
         );
         stageDocumentRepository.save(document);
+
+        publishEvent(
+                projectId,
+                RealtimeEventType.AI_GENERATION_COMPLETED,
+                loginUser.userId(),
+                Map.of(
+                        "stage", StageType.SCREEN_SPEC.name(),
+                        "documentId", document.getId()
+                )
+        );
 
         return StageDocumentResponse.of(document, objectMapper);
     }
@@ -242,6 +277,16 @@ public class StageService {
         if (document.getStageType() == StageType.SCREEN_SPEC) {
             extractAndSaveScreens(document);
         }
+
+        publishEvent(
+                document.getProjectId(),
+                RealtimeEventType.STAGE_CONFIRMED,
+                loginUser.userId(),
+                Map.of(
+                        "stage", document.getStageType().name(),
+                        "documentId", document.getId()
+                )
+        );
     }
 
     // ─────────────────────────────────────────
@@ -289,6 +334,19 @@ public class StageService {
         } catch (JsonProcessingException e) {
             log.error("[StageService] Screen 추출 실패. documentId={}, error={}", document.getId(), e.getMessage());
             throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID);
+        }
+    }
+
+    private void publishEvent(
+            Long projectId,
+            RealtimeEventType type,
+            Long userId,
+            Map<String, Object> payload
+    ) {
+        try {
+            projectWebSocketHandler.publish(projectId, type, userId, payload);
+        } catch (IOException e) {
+            log.warn("WebSocket 이벤트 전송에 실패했습니다. type={}", type, e);
         }
     }
 

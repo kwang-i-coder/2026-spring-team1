@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team1.__spring_team1.domain.ai.dto.WireframeContent;
 import com.team1.__spring_team1.domain.ai.service.AiDocumentService;
 import com.team1.__spring_team1.domain.project.service.ProjectPermissionService;
+import com.team1.__spring_team1.domain.realtime.dto.RealtimeEventType;
+import com.team1.__spring_team1.domain.realtime.handler.ProjectWebSocketHandler;
 import com.team1.__spring_team1.domain.stage.entity.Screen;
 import com.team1.__spring_team1.domain.stage.entity.StageDocument;
 import com.team1.__spring_team1.domain.stage.repository.ScreenRepository;
@@ -23,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.List;
 import java.util.function.Function;
@@ -40,6 +43,7 @@ public class WireframeService {
     private final ProjectPermissionService projectPermissionService;
     private final AiDocumentService aiDocumentService;
     private final ObjectMapper objectMapper;
+    private final ProjectWebSocketHandler projectWebSocketHandler;
 
     @Transactional
     public List<ScreenWireframeResponse> generateWireframe(Long projectId, WireframeGenerateRequest request, LoginUser loginUser) {
@@ -95,6 +99,18 @@ public class WireframeService {
 
         if (!newWireframes.isEmpty()) {
             wireframeRepository.saveAll(newWireframes);
+
+            for (Wireframe wireframe : newWireframes) {
+                publishEvent(
+                        projectId,
+                        RealtimeEventType.WIREFRAME_UPDATED,
+                        loginUser.userId(),
+                        Map.of(
+                                "screenId", wireframe.getScreenId(),
+                                "version", wireframe.getVersion()
+                        )
+                );
+            }
         }
         return requestedScreens.stream().map(screen -> new ScreenWireframeResponse(screen.getId(), screen.getName(), resultDslMap.get(screen.getId())))
                 .toList();
@@ -200,6 +216,19 @@ public class WireframeService {
             log.error("[WireframeService] 와이어프레임 JSON 파싱 실패. jsonDsl={}, error={}", jsonDsl, e.getMessage());
 
             throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID);
+        }
+    }
+
+    private void publishEvent(
+            Long projectId,
+            RealtimeEventType type,
+            Long userId,
+            Map<String, Object> payload
+    ) {
+        try {
+            projectWebSocketHandler.publish(projectId, type, userId, payload);
+        } catch (IOException e) {
+            log.warn("WebSocket 이벤트 전송에 실패했습니다. type={}", type, e);
         }
     }
 }
