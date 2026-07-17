@@ -12,7 +12,6 @@ import com.team1.__spring_team1.domain.user.repository.UserRepository;
 import com.team1.__spring_team1.global.exception.BusinessException;
 import com.team1.__spring_team1.global.exception.ErrorCode;
 import com.team1.__spring_team1.global.security.TokenHashUtil;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,7 +32,6 @@ public class AuthService {
 
     @Transactional
     public SignupResponse signup(SignupRequest request) {
-
         if (userRepository.existsByLoginId(request.getLoginId())) {
             throw new BusinessException(ErrorCode.DUPLICATE_LOGIN_ID);
         }
@@ -53,25 +51,15 @@ public class AuthService {
 
     @Transactional
     public LoginResult login(LoginRequest request) {
-
-        System.out.println("LOGIN START");
-
         User user = userRepository.findByLoginId(request.getLoginId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_LOGIN));
-
-        System.out.println("USER FOUND");
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new BusinessException(ErrorCode.INVALID_LOGIN);
         }
 
-        System.out.println("PASSWORD OK");
-
         String sessionToken = generateSessionToken();
-        System.out.println("TOKEN GENERATED");
-
         String sessionTokenHash = TokenHashUtil.hash(sessionToken);
-        System.out.println("TOKEN HASHED");
 
         Session session = new Session(
                 user,
@@ -79,15 +67,11 @@ public class AuthService {
                 LocalDateTime.now().plusDays(7)
         );
 
-        System.out.println("BEFORE SAVE");
-
         sessionRepository.save(session);
 
-        System.out.println("AFTER SAVE");
-
         return new LoginResult(
-            LoginResponse.from(user),
-            sessionToken
+                LoginResponse.from(user),
+                sessionToken
         );
     }
 
@@ -104,7 +88,7 @@ public class AuthService {
         String sessionTokenHash = TokenHashUtil.hash(sessionToken);
 
         Session session = sessionRepository.findBySessionTokenHash(sessionTokenHash)
-            .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
 
         if (!session.isValid()) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
@@ -112,5 +96,4 @@ public class AuthService {
 
         session.revoke();
     }
-
 }
