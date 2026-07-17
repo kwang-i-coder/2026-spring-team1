@@ -11,7 +11,7 @@ public class GeminiRestClientConfig {
     public RestClient geminiRestClient(GeminiApiProperties properties){
         return RestClient.builder()
                 .baseUrl(properties.getBaseUrl())
-                .defaultHeader("Content-Type", "applicaiton/json")
+                .defaultHeader("Content-Type", "application/json")
                 .build();
     }
 }
