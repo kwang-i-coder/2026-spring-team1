@@ -91,7 +91,7 @@ public class AiDocumentService {
      */
     public WireframeContent generateWireframe(String screenSpecJson) {
         String prompt = wireframePromptBuilder.build(screenSpecJson);
-        return generateWireframe(prompt);
+        return generateWireframeFromPrompt(prompt);
     }
 
     public WireframeContent regenerateWireframe(String screenSpecJson, String reason) {
