@@ -70,7 +70,7 @@ public class AuthService {
         sessionRepository.save(session);
 
         return new LoginResult(
-                LoginResponse.from(user),
+                LoginResponse.from(user, sessionToken),
                 sessionToken
         );
     }
