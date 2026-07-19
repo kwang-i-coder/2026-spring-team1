@@ -15,11 +15,12 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     private final ProjectWebSocketHandler projectWebSocketHandler;
     private final SessionHandshakeInterceptor sessionHandshakeInterceptor;
+    private final FrontendOriginProvider frontendOriginProvider;
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(projectWebSocketHandler, "/ws/projects/*")
                 .addInterceptors(sessionHandshakeInterceptor)
-                .setAllowedOrigins("*");
+                .setAllowedOrigins(frontendOriginProvider.getOrigin());
     }
 }

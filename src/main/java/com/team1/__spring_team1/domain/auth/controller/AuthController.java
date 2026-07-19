@@ -13,6 +13,7 @@ import com.team1.__spring_team1.global.security.LoginUser;
 import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +35,12 @@ public class AuthController {
 
     private final AuthService authService;
 
+    @Value("${app.auth.cookie.secure}")
+    private boolean sessionCookieSecure;
+
+    @Value("${app.auth.cookie.same-site}")
+    private String sessionCookieSameSite;
+
     @PostMapping("/signup")
     public ApiResponse<SignupResponse> signup(
             @Valid @RequestBody SignupRequest request
@@ -54,8 +61,8 @@ public class AuthController {
                         result.sessionToken()
                 )
                 .httpOnly(true)
-                .secure(false)
-                .sameSite("Lax")
+                .secure(sessionCookieSecure)
+                .sameSite(sessionCookieSameSite)
                 .path("/")
                 .maxAge(Duration.ofDays(7))
                 .build();
@@ -85,8 +92,8 @@ public class AuthController {
                         ""
                 )
                 .httpOnly(true)
-                .secure(false)
-                .sameSite("Lax")
+                .secure(sessionCookieSecure)
+                .sameSite(sessionCookieSameSite)
                 .path("/")
                 .maxAge(0)
                 .build();
