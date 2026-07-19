@@ -14,6 +14,8 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 import org.springframework.web.util.UriUtils;
 import org.springframework.stereotype.Component;
 
+import org.springframework.web.util.UriComponentsBuilder;
+
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -38,7 +40,8 @@ public class SessionHandshakeInterceptor implements HandshakeInterceptor {
             Map<String, Object> attributes
     ) {
         Long projectId = extractProjectId(request.getURI());
-        String sessionToken = extractSessionToken(request);
+        String sessionToken = extractSessionTokenFromCookie(request)
+                .orElseGet(() -> extractSessionTokenFromQuery(request.getURI()));
 
         if (projectId == null || sessionToken == null) {
             response.setStatusCode(HttpStatus.UNAUTHORIZED);
@@ -76,16 +79,23 @@ public class SessionHandshakeInterceptor implements HandshakeInterceptor {
         // No cleanup is required because the handler owns active session tracking.
     }
 
-    private String extractSessionToken(ServerHttpRequest request) {
-        HttpCookie sessionCookie = request.getHeaders()
+    private java.util.Optional<String> extractSessionTokenFromCookie(ServerHttpRequest request) {
+        return request.getHeaders()
                 .getOrDefault(HttpHeaders.COOKIE, List.of())
                 .stream()
                 .map(cookie -> parseCookie(cookie, SESSION_COOKIE_NAME))
                 .filter(cookie -> cookie != null)
                 .findFirst()
-                .orElse(null);
-
-        return sessionCookie == null ? null : sessionCookie.getValue();
+                .map(HttpCookie::getValue);
+    }
+    private String extractSessionTokenFromQuery(URI uri) {
+        if (uri == null) {
+            return null;
+        }
+        return UriComponentsBuilder.fromUri(uri)
+                .build()
+                .getQueryParams()
+                .getFirst("token");
     }
 
     private HttpCookie parseCookie(String cookieHeader, String cookieName) {

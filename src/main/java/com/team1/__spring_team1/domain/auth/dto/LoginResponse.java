@@ -11,12 +11,14 @@ public class LoginResponse {
     private Long id;
     private String loginId;
     private String name;
+    private String sessionToken;
 
-    public static LoginResponse from(User user) {
+    public static LoginResponse from(User user, String sessionToken) {
         return new LoginResponse(
                 user.getId(),
                 user.getLoginId(),
-                user.getName()
+                user.getName(),
+                sessionToken
         );
     }
 }
