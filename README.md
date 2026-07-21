@@ -1,75 +1,106 @@
-## 커밋 메시지 컨벤션
+# PlanFlow
 
-### 1. 커밋 유형 지정
+AI가 회의 자료를 기획서 → 기능 명세서 → 화면 기획서 → 와이어프레임 순서로 자동 생성해주고, 팀원들이 실시간으로 함께 검토·확정·재요청할 수 있는 협업 툴입니다.
 
-커밋 유형은 영어로 작성한 후 `:` 로 제목과 분리
-| 커밋 유형 | 의미 |
-| ---------------- | ------------------------------------------------------------ |
-| feat | 새로운 기능 추가 |
-| fix | 버그 수정 |
-| mod | 코드 구조 개선 & 크지 않은 수정 |
-| style | 코드 formatting, 세미콜론 누락, 코드 자체의 변경이 없는 경우 |
-| design | 사용자 UI 디자인 변경 |
-| comment | 필요한 주석 추가 및 변경 |
-| docs | 문서 수정 ex) README |
-| refactor | 코드 리팩토링 |
-| chore | pubspec 등 시스템 파일 수정 ex) .gitignore |
-| test | 테스트 코드, 리팩토링 테스트 코드 추가 |
-| rename | 파일 또는 폴더 명을 수정하거나 옮기는 작업만인 경우 |
-| remove | 파일을 삭제하는 작업만 수행한 경우 |
-| !BREAKING CHANGE | 커다란 API 변경의 경우 |
-| !HOTFIX | 급하게 치명적인 버그를 고쳐야 하는 경우 |
 
-### 2. 본문 작성
+- 프론트엔드: `2026-spring-team1-FE`
 
-커밋 유형 이후 제목과 본문은 한글로 작성하여 내용이 잘 전달될 수 있도록 할 것  
-본문에는 변경한 내용과 이유 설명 (어떻게보다는 무엇 & 왜를 설명)
+## 무엇을 만들었나
 
-### 3. 마침표는 사용하지 않음
-
-### 4. 제목은 50자 이내로 작성
-
-### 5. 한 커밋에는 한 가지 문제만
-
-추적 가능하게 유지해주기  
-너무 많은 문제를 한 커밋에 담으면 추적하기 어려움
-
-### 6. 여러가지 항목이 있다면 글머리 기호를 통해 가독성 높이기
+기획 회의가 끝나면 보통 그 내용을 정리해서 기획서를 쓰고, 기능 명세서를 뽑고, 화면 단위로 쪼개고, 와이어프레임을 그리는 과정을 거칩니다. 이 프로젝트는 이 흐름 전체를 AI가 순서대로 자동 생성하고, 각 단계 문서를 팀 리더가 검토 후 "확정"하면 다음 단계로 넘어가는 파이프라인으로 구현했습니다.
 
 ```
-- 변경 내용 1
-- 변경 내용 2
-- 변경 내용 3
+회의 자료(텍스트/STT)
+      │
+      ▼
+ 1. 기획서 (PLAN)         AI 생성 → 팀원 검토 → 리더 확정
+      │
+      ▼
+ 2. 기능 명세서 (FEATURE_SPEC)   AI 생성 → 팀원 검토 → 리더 확정
+      │
+      ▼
+ 3. 화면별 기획서 (SCREEN_SPEC)  AI 생성 → 팀원 검토 → 리더 확정
+      │
+      ▼
+ 4. 와이어프레임 (WIREFRAME)     화면별 AI 생성 → 재생성 요청/승인/거절
+      │
+      ▼
+ Markdown 리포트로 최종 export
 ```
 
-### 7. 자신의 코드가 직관적으로 바로 파악할 수 있다고 생각하지 않기
+각 단계는 확정 전까지 프로젝트 멤버들이 WebSocket으로 실시간 편집 현황을 공유하며, 확정된 문서만 다음 단계 AI 생성의 입력으로 쓰입니다.
 
-### 바람직한 커밋
+## 핵심 기능
 
+- **회의 자료 업로드 및 STT 변환** — 오디오 파일을 S3에 저장하고 텍스트로 변환
+- **AI 문서 자동 생성** — 회의 내용을 바탕으로 기획서/기능명세서/화면기획서를 Gemini로 순차 생성
+- **실시간 협업** — WebSocket으로 문서 편집, AI 생성 완료, 단계 확정 이벤트를 실시간 공유
+
+## 기술 스택
+
+| 영역 | 스택 |
+|---|---|
+| Language / Framework | Java 21, Spring Boot 3.5 |
+| 인증 | Spring Security, 세션 기반 인증(httpOnly 쿠키) |
+| DB | PostgreSQL (운영), H2 (테스트) |
+| ORM | Spring Data JPA / Hibernate |
+| 실시간 통신 | Spring WebSocket |
+| AI 연동 | Google Gemini API |
+| 파일 저장 | AWS S3, AWS Transcribe (STT) |
+| API 문서 | Springdoc OpenAPI(Swagger) |
+| 배포 | AWS EC2, Nginx, Let's Encrypt(sslip.io), GitHub Actions CI/CD |
+| 테스트 | JUnit5, Mockito, H2 |
+
+## 팀 구성 및 담당 도메인
+
+
+| 도메인 | 담당 | 설명 |
+|---|---|---|
+| Auth | [@wanimetro](https://github.com/wanimetro) | 회원가입/로그인/세션 인증 |
+| Project | [@tthungjun](https://github.com/tthungjun) | 프로젝트/초대/멤버 관리 |
+| Meeting | [@najunho04](https://github.com/najunho04) | 회의록/파일 업로드/STT 처리 |
+| AI/Stage | [@xihxxn](https://github.com/xihxxn) | AI 문서 생성/단계 문서 관리 |
+| **Wireframe** | **[@kwang-i-coder](https://github.com/kwang-i-coder)** | **와이어프레임 생성 및 재생성 요청 API** |
+| Realtime/Export | [@Sjaize](https://github.com/Sjaize) | WebSocket 실시간 이벤트/Markdown Export |
+
+
+## 실행 방법
+
+### 요구 사항
+
+- Java 21
+- PostgreSQL (로컬 실행 시)
+- Gemini API Key (없으면 로컬 환경에서는 자동으로 Mock AI 클라이언트가 동작합니다)
+
+### 환경 변수
+
+`.env.example`을 참고해 `.env` 파일을 작성합니다.
+
+```bash
+cp .env.example .env
 ```
-feat: 프로필에 모국어 설정 기능 추가
-- lang 클릭 시 언어 목록 모달 띄워줌
 
-design: 시간표 레이아웃 수정
-- 요일 별 행 너비가 안 맞는 문제 해결
+### 로컬 실행
+
+```bash
+./gradlew bootRun
 ```
 
-## 브랜치 컨벤션
+`spring.profiles.default`가 `local`인 환경에서는 Gemini API 키 없이도 `MockAiDocumentClient`가 고정된 응답을 반환하므로, 전체 플로우(생성 → 확정 → 재생성)를 API 키 없이 테스트할 수 있습니다.
 
-### 브랜치 유형 지정
+### 테스트
 
-브랜치명은 어떤 작업인지 한 단어로 작성하고 `/` 로 제목과 분리
-| 브랜치 유형 | 의미 |
-| ---------------- | ------------------------------------------------------------ |
-| main | 서비스 중 코드 |
-| develop | 최종 개발 브랜치 |
-| feature | 기능 개발 |
-| hotfix | 버그 수정 |
-| refactor | 리팩토링 |
-| infra | 인프라 관련 |
-
-### 바람직한 브랜치 명
-
+```bash
+./gradlew test
 ```
-feature/login
-```
+
+H2 인메모리 DB로 실행되며, 별도의 PostgreSQL 설정 없이 동작합니다.
+
+## 배포 아키텍처
+
+도메인 구매 없이 AWS EC2(백엔드) + Vercel(프론트엔드)로 배포했습니다.
+
+- **백엔드**: EC2에 Nginx 리버스 프록시 + Spring Boot(systemd), sslip.io로 무료 HTTPS 적용
+- **프론트엔드**: Vercel, `vercel.json` rewrite로 API 요청을 EC2로 프록시(동일 출처 처리)
+- **CI/CD**: `main` 브랜치 push 시 GitHub Actions가 빌드 후 EC2에 자동 배포
+- **WebSocket 인증**: 크로스도메인 환경에서 세션 쿠키가 전달되지 않는 브라우저 정책을 우회하기 위해, 로그인 시 발급되는 세션 토큰을 쿼리 파라미터로 추가 전달하는 방식을 병행
